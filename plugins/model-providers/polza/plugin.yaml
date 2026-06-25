@@ -1,0 +1,5 @@
+name: polza-provider
+kind: model-provider
+version: 1.0.0
+description: Polza.ai — unified API for 200+ AI models with RUB billing
+author: akrhin
