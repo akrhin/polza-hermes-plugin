@@ -1,8 +1,8 @@
 # Polza.ai Hermes Provider Plugin
 
-[![English version](docs/assets/en-flag.svg)](README.md)
+[🇬🇧 English](README.md)
 
-> **Унифицированный API д��я сотен AI-моделей** с оплатой в рублях, выбором
+> **Унифи��ированный API для сотен AI-моделей** с оплатой в рублях, выбором
 > провайдера, reasoning-токенами и веб-поиском — как встроенный провайдер
 > Hermes Agent.
 
@@ -14,7 +14,7 @@
 - **Выбор провайдера** — приоритет, сортировка по цене, белый/чёрный список
 - **Reasoning** — o-series, DeepSeek R1, Claude Opus 4.7+, Grok
 - **Веб-поиск** — доступ к реальному интернету для любой модели
-- **Публичный каталог моделей** — `GET /v1/models` без API-ключа (бесплатно!)
+- **Публичный каталог моделей** — `GET /v1/models` без API-ключа
 - **Оплата в рублях** — `cost_rub` в каждом ответе
 - **Баланс** — `GET /v1/balance` для контроля расходов
 - **Плагины** — file parser, response healing и другие
@@ -38,7 +38,7 @@ ln -sf "$(pwd)/polza-hermes-plugin/plugins/model-providers/polza" \
 **Вариант А — переменная окружения** (рекомендуется для одного ключа):
 
 ```bash
-echo 'POLZA_API_KEY=pza_ваш_ключ' >> ~/.hermes/.env
+echo 'POLZA_API_KEY=pza_ключ' >> ~/.hermes/.env
 ```
 
 **Вариант Б — Credential pool** (несколько ключей с ротацией):
@@ -75,19 +75,41 @@ model:
   model: openai/gpt-4o-mini
 ```
 
-### С выбором провайдера
+### С выбором провайдера (рекомендуется)
+
+Объект `provider` передаётся напрямую через `extra_body`. Этот подход
+работает во всех режимах (CLI, Gateway, WebUI) и соответствует формату
+API Polza:
 
 ```yaml
 model:
   provider: polza
-  model: anthropic/claude-sonnet-4
-
-providers:
-  only: [OpenAI, Anthropic]
-  sort: price
+  model: deepseek/deepseek-v4-flash
+  extra_body:
+    provider:
+      only:
+        - DeepSeek
+        - OpenAI
+        - Anthropic
+      sort: price
+      allow_fallbacks: true
 ```
 
-Подробнее: [документация Polza по выбору провайдера](https://polza.ai/docs/gaidy/provider-selection).
+Поля объекта `provider` (см. [документацию](https://polza.ai/docs/gaidy/provider-selection)):
+
+| Поле | ��ип | Описание |
+|------|-----|----------|
+| `only` | `string[]` | Белый список — только эти провайдеры |
+| `ignore` | `string[]` | Чёрный список — исключить провайдеры |
+| `order` | `string[]` | Приоритетный порядок |
+| `sort` | `string` | Сортировка: `price`, `latency`, `throughput` |
+| `max_price` | `object` | Макс. цена за 1М токенов: `{prompt, completion}` |
+| `allow_fallbacks` | `boolean` | Fallback на другие провайдеры при ошибке |
+
+**Почему `extra_body`, а не `providers:`?** `extra_body` — провайдер-специфичный,
+однозначный и работает одинаково в CLI и Gateway. Верхнеуровневый `providers:`
+работает только в CLI; `provider_routing:` — только в Gateway/WebUI.
+`extra_body` работает везде.
 
 ### С reasoning
 
@@ -96,6 +118,18 @@ reasoning_effort: high  # xhigh | high | medium | low | minimal | none
 ```
 
 Подробнее: [документация Polza по reasoning](https://polza.ai/docs/osobennosti/reasoning-tokens).
+
+### С веб-поиском
+
+Polza поддерживает веб-поиск через поле `plugins` в `extra_body`:
+
+```yaml
+model:
+  extra_body:
+    plugins:
+      - id: web
+        max_results: 5
+```
 
 ## Проверка
 
@@ -111,6 +145,6 @@ hermes doctor # Должен включить проверку Polza
 Плагин объявляет `ProviderProfile`, который Hermes обнаруживает автоматически.
 Все точки интеграции — аутентификация, каталог моделей, CLI-пикер, проверки
 здоровья, вспомогательные задачи — читают данные из профиля. Ни один core-файл
-не из��еняется.
+не изменяется.
 
 Подробности реализации — в [`DEVELOPMENT.md`](DEVELOPMENT.md).

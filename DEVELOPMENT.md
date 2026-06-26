@@ -30,24 +30,40 @@ The following layers auto-wire from the profile:
 | Doctor health checks | `doctor.py` (reads PROVIDER_REGISTRY) | ✅ |
 | Transport kwargs | `chat_completions.py:527` (calls profile hooks) | ✅ |
 
-### Provider routing
+### Provider routing: recommended approach
 
-Hermes already collects `provider_preferences` from `config.yaml` (fields:
-`providers.only`, `providers.ignore`, `providers.order`, `providers.sort`)
-and passes them as `provider_preferences` dict to `build_extra_body()`.
+**Use `model.extra_body.provider` in `config.yaml`** — it works in CLI, Gateway,
+and WebUI modes identically:
 
-PolzaProfile forwards this directly as `provider: {only: [...], sort: "price"}`.
+```yaml
+model:
+  provider: polza
+  model: deepseek/deepseek-v4-flash
+  extra_body:
+    provider:
+      only: [DeepSeek, OpenAI]
+      sort: price
+      allow_fallbacks: true
+```
+
+This is provider-specific and unambiguous. The top-level `providers:` key works
+only in CLI mode; `provider_routing:` only in Gateway/WebUI mode. `extra_body`
+works in both.
+
+The `build_extra_body()` hook in the profile also crosses `provider_preferences`
+from `providers:` / `provider_routing:` into `extra_body.provider` — but the
+direct `extra_body` approach is simpler and recommended.
 
 ### Reasoning
 
 Hermes `reasoning_config` dict maps directly to Polza's `reasoning` object.
-No transformation needed.
+No transformation needed — PolzaProfile passes it through.
 
 ### Web search
 
 Polza uses a non-standard `plugins: [{id: "web", ...}]` field.
 This is activated via `build_extra_body()` when context includes
-`polza_web_search`.
+`polza_web_search`, or directly via `model.extra_body.plugins`.
 
 ## Testing
 
@@ -56,27 +72,24 @@ This is activated via `build_extra_body()` when context includes
 python -m pytest tests/test_polza_profile.py -n0 -q -v
 
 # Live smoke test (requires POLZA_API_KEY in environment)
-POLZA_API_KEY=pza_... python -m pytest tests/test_polza_live.py -n0 -q -v -x
+POLZA_API_KEY=*** python -m pytest tests/test_polza_live.py -n0 -q -v -x
 ```
 
 ## Roadmap
 
-### Phase 1 — Core plugin ✅ (current)
+### Phase 1 — Core plugin ✅ (current state)
 - [x] ProviderProfile with all hooks
 - [x] Public model catalog fetch
 - [x] Provider routing (build_extra_body)
 - [x] Reasoning passthrough (build_api_kwargs_extras)
+- [x] Unit tests for all profile hooks
+- [x] Live smoke test
 
-### Phase 2 — Testing & polish
-- [ ] Unit tests for all profile hooks
-- [ ] Live smoke test
-- [ ] GitHub CI integration
-
-### Phase 3 — Extended features
+### Phase 2 — Extended features
 - [ ] Balance check via `hermes doctor`
 - [ ] Web search plugin support
 - [ ] File parser plugin support
 - [ ] Summary routing (chat_completion_helpers.py fix)
 
-### Phase 4 — Upstream (future)
+### Phase 3 �� Upstream (future)
 - [ ] PR to hermes-agent repo as bundled provider
