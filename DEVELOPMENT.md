@@ -97,3 +97,20 @@ POLZA_API_KEY=*** python -m pytest tests/test_polza_live.py -q -v -x
 - [x] Summary routing fix — `_has_aggregator_profile()` in `chat_completion_helpers.py`
 - [x] GitHub CI — `.github/workflows/test.yml`
 - [ ] PR to hermes-agent repo as bundled provider (deferred)
+
+## Upstream PR Dependencies
+
+This plugin requires no core edits, but two upstream PRs are needed
+for full functionality:
+
+| PR | Files | Purpose |
+|----|-------|---------|
+| [#53033](https://github.com/NousResearch/hermes-agent/pull/53033) | `chat_completion_helpers.py` | Forward provider routing to auxiliary calls |
+| [#53063](https://github.com/NousResearch/hermes-agent/pull/53063) | `usage_pricing.py`, `model_metadata.py`, `doctor.py` | Pricing estimation, `cost_rub` extraction, doctor validation |
+
+Without these:
+- WebUI shows `N/A` for cost
+- `hermes doctor` shows spurious warnings (`provider unknown`)
+- `cost_rub` from Polza responses is ignored
+
+See `README.md` for the local cherry-pick workaround.

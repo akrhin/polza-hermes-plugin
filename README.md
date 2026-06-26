@@ -176,3 +176,59 @@ Every integration point — auth, model catalog, CLI picker, health checks,
 auxiliary tasks — reads from the profile. No core files are modified.
 
 See [`DEVELOPMENT.md`](DEVELOPMENT.md) for implementation details.
+
+---
+
+## Limitations (upstream PR dependencies)
+
+This plugin is a **pure plugin** — no Hermes core files are modified. However, two
+upstream Pull Requests are required for **full functionality**:
+
+| PR | Scope | Without it, this breaks |
+|----|-------|------------------------|
+| [#53033](https://github.com/NousResearch/hermes-agent/pull/53033) | Provider routing on auxiliary calls (summary, compression, vision) | Routing preferences (`only`/`ignore`/`sort`) silently lost on non-chat calls |
+| [#53063](https://github.com/NousResearch/hermes-agent/pull/53063) | Pricing estimation + `hermes doctor` validation + `cost_rub` extraction | WebUI shows `N/A` for cost; `hermes doctor` shows false-positive warnings about unknown provider/vendor prefix |
+
+### ❌ Without PR #53063
+
+- Cost display in WebUI shows **`N/A`** or zero — pricing estimation falls back to `unknown`
+- `hermes doctor` prints spurious warnings:
+  ```
+  model.provider 'polza' is unknown.
+  model.default 'deepseek/deepseek-v4-flash' is vendor-prefixed but model.provider is 'polza'.
+  ```
+- `cost_rub` from Polza responses is **not extracted** — exact RUB billing info ignored
+
+### ✅ Works without any PR
+
+- Basic chat completions, streaming, tools, structured output
+- Provider routing on **chat** calls (via `model.extra_body.provider` in `config.yaml`)
+- Reasoning tokens passthrough
+- Public model catalog (`fetch_models` requires no API key)
+- Balance tracking (`check_balance`, `polza-doctor`)
+- Web search plugin, file parser plugin
+- Session ID correlation
+- All 30 unit tests pass
+
+### Local workaround
+
+If you can't wait for upstream merge, cherry-pick the PR commits into your local
+Hermes Agent:
+
+```bash
+cd ~/git/hermes-agent
+
+# PR #53033 — auxiliary routing
+git fetch origin pull/53033/head:pr/53033
+git cherry-pick pr/53033
+
+# PR #53063 — pricing + doctor
+git fetch origin pull/53063/head:pr/53063
+git cherry-pick pr/53063
+
+cp agent/chat_completion_helpers.py ~/.hermes/hermes-agent/agent/
+cp agent/usage_pricing.py agent/model_metadata.py ~/.hermes/hermes-agent/agent/
+cp hermes_cli/doctor.py ~/.hermes/hermes-agent/hermes_cli/
+```
+
+Then restart the gateway and WebUI.
