@@ -92,8 +92,8 @@ POLZA_API_KEY=*** python -m pytest tests/test_polza_live.py -q -v -x
 - [x] Web search plugin support (polza_web_search context)
 - [x] File parser plugin support (polza_file_parser context)
 
-### Phase 3 — Polish & upstream
-- [ ] Balance display via `hermes doctor`
-- [ ] Summary routing (chat_completion_helpers.py fix — core change)
-- [ ] GitHub CI integration
-- [ ] PR to hermes-agent repo as bundled provider
+### Phase 3 — Polish & upstream ✅
+- [x] Balance display via `scripts/polza-doctor.py`
+- [x] Summary routing fix — `_has_aggregator_profile()` in `chat_completion_helpers.py`
+- [x] GitHub CI — `.github/workflows/test.yml`
+- [ ] PR to hermes-agent repo as bundled provider (deferred)

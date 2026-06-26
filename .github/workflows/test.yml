@@ -1,0 +1,40 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Hermes Agent (minimal)
+        run: |
+          pip install hermes-agent --quiet
+
+      - name: Install plugin in Hermes
+        run: |
+          mkdir -p ~/.hermes/plugins/model-providers
+          ln -sf "${{ github.workspace }}/plugins/model-providers/polza" \
+                 ~/.hermes/plugins/model-providers/polza
+
+      - name: Install test deps
+        run: |
+          pip install pytest --quiet
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/test_polza_profile.py -q -v
+
+      - name: Lint check
+        run: |
+          python -m py_compile plugins/model-providers/polza/__init__.py
+          python -m py_compile scripts/check-balance.py
