@@ -34,7 +34,7 @@ Or copy the `plugins/model-providers/polza/` directory directly into
 
 ### 2. Add API Key
 
-**Option A ��� Environment variable** (recommended for a single key):
+**Option A — Environment variable** (recommended for a single key):
 
 ```bash
 echo 'POLZA_API_KEY=pza_yo...ere' >> ~/.hermes/.env
