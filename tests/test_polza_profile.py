@@ -117,6 +117,36 @@ class TestPolzaProfileBuildExtraBody:
         assert body.get("provider") == {"sort": "latency"}
         assert len(body["plugins"]) == 1
 
+    def test_session_id_passthrough(self):
+        p = _get_profile()
+        body = p.build_extra_body(session_id="sess_abc123")
+        assert body.get("session_id") == "sess_abc123"
+
+    def test_session_id_with_everything(self):
+        p = _get_profile()
+        body = p.build_extra_body(
+            session_id="sess_xyz",
+            provider_preferences={"only": ["DeepSeek"]},
+            polza_web_search={"max_results": 3},
+        )
+        assert body["session_id"] == "sess_xyz"
+        assert body["provider"] == {"only": ["DeepSeek"]}
+        assert len(body["plugins"]) == 1
+
+    def test_web_search_with_engine(self):
+        p = _get_profile()
+        body = p.build_extra_body(
+            polza_web_search={"max_results": 5, "engine": "native"}
+        )
+        assert {"id": "web", "max_results": 5, "engine": "native"} in body["plugins"]
+
+    def test_file_parser_with_ocr(self):
+        p = _get_profile()
+        body = p.build_extra_body(
+            polza_file_parser={"images": {"ocr": True}}
+        )
+        assert {"id": "file-parser", "images": {"ocr": True}} in body["plugins"]
+
 
 class TestPolzaProfileBuildApiKwargsExtras:
     """build_api_kwargs_extras() — reasoning passthrough."""
@@ -158,3 +188,21 @@ class TestPolzaProfileFetchModels:
         if result is not None:
             assert len(result) > 0
             assert all(isinstance(m, str) for m in result)
+
+
+class TestPolzaProfileCheckBalance:
+    """check_balance() — API-less structure tests."""
+
+    def test_has_check_balance_method(self):
+        p = _get_profile()
+        assert hasattr(p, "check_balance")
+
+    def test_check_balance_returns_none_without_key(self):
+        p = _get_profile()
+        result = p.check_balance(api_key=None)
+        assert result is None
+
+    def test_check_balance_returns_none_with_empty_key(self):
+        p = _get_profile()
+        result = p.check_balance(api_key="")
+        assert result is None

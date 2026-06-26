@@ -69,27 +69,31 @@ This is activated via `build_extra_body()` when context includes
 
 ```bash
 # Unit tests (no key required)
-python -m pytest tests/test_polza_profile.py -n0 -q -v
+python -m pytest tests/test_polza_profile.py -q -v
 
 # Live smoke test (requires POLZA_API_KEY in environment)
-POLZA_API_KEY=*** python -m pytest tests/test_polza_live.py -n0 -q -v -x
+POLZA_API_KEY=*** python -m pytest tests/test_polza_live.py -q -v -x
 ```
 
 ## Roadmap
 
-### Phase 1 — Core plugin ✅ (current state)
+### Phase 1 — Core plugin ✅ (done)
 - [x] ProviderProfile with all hooks
-- [x] Public model catalog fetch
+- [x] Public model catalog fetch (no API key needed)
 - [x] Provider routing (build_extra_body)
 - [x] Reasoning passthrough (build_api_kwargs_extras)
-- [x] Unit tests for all profile hooks
-- [x] Live smoke test
+- [x] Session ID correlation (build_extra_body → Polza `session_id`)
+- [x] Unit tests: 30 tests covering identity, hooks, context combinations
+- [x] Live smoke test: chat, streaming, tools, provider routing, reasoning
 
-### Phase 2 — Extended features
-- [ ] Balance check via `hermes doctor`
-- [ ] Web search plugin support
-- [ ] File parser plugin support
-- [ ] Summary routing (chat_completion_helpers.py fix)
+### Phase 2 — Extended features ✅
+- [x] Session ID passthrough (session_id → Polza)
+- [x] Balance check method (PolzaProfile.check_balance())
+- [x] Web search plugin support (polza_web_search context)
+- [x] File parser plugin support (polza_file_parser context)
 
-### Phase 3 �� Upstream (future)
+### Phase 3 — Polish & upstream
+- [ ] Balance display via `hermes doctor`
+- [ ] Summary routing (chat_completion_helpers.py fix — core change)
+- [ ] GitHub CI integration
 - [ ] PR to hermes-agent repo as bundled provider

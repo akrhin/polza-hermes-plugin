@@ -45,6 +45,11 @@ class PolzaProfile(ProviderProfile):
         """
         body: dict[str, Any] = {}
 
+        # ── Session ID ──────────────────────────────────────────
+        # Forwards Hermes session_id to Polza for request correlation.
+        if session_id:
+            body["session_id"] = session_id
+
         # ── Provider routing ────────────────────────────────────
         # Maps Hermes ``provider_preferences`` → Polza ``provider`` object.
         # Fields: only, ignore, order, sort, max_price, allow_fallbacks.
@@ -96,6 +101,42 @@ class PolzaProfile(ProviderProfile):
             extra_body["reasoning"] = dict(reasoning_config)
 
         return extra_body, top_level
+
+    def check_balance(
+        self,
+        api_key: str | None = None,
+        timeout: float = 10.0,
+    ) -> float | None:
+        """Check Polza.ai account balance.
+
+        Makes a ``GET /v1/balance`` request. Returns the current balance
+        in RUB as a float, or None if the request fails.
+
+        Usage::
+
+            from providers import get_provider_profile
+            p = get_provider_profile("polza")
+            balance = p.check_balance(api_key="your_key")
+            print(f"Balance: {balance} RUB")
+        """
+        import json
+        import urllib.request
+
+        if not api_key:
+            return None
+
+        url = f"{self.base_url.rstrip('/')}/balance"
+        req = urllib.request.Request(url)
+        req.add_header("Authorization", f"Bearer {api_key}")
+        req.add_header("Accept", "application/json")
+
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                data = json.loads(resp.read().decode())
+            return float(data.get("amount", 0))
+        except Exception as exc:
+            logger.debug("check_balance(%s): %s", self.name, exc)
+            return None
 
 
 polza = PolzaProfile(

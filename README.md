@@ -119,7 +119,7 @@ See [Polza reasoning docs](https://polza.ai/docs/osobennosti/reasoning-tokens).
 
 ### With Web Search
 
-Polza supports web search via the `plugins` field. Add it to `extra_body`:
+Polza supports web search via the `plugins` field in `extra_body`:
 
 ```yaml
 model:
@@ -127,6 +127,37 @@ model:
     plugins:
       - id: web
         max_results: 5
+```
+
+Or via `polza_web_search` in `config.yaml` (forwarded through
+`build_extra_body()` from the `providers:` section):
+
+```yaml
+# provider-specific context — forwarded to build_extra_body()
+polza_web_search:
+  max_results: 5
+  engine: auto  # auto | native | exa
+```
+
+### Balance check
+
+Check your Polza account balance using the profile method:
+
+```bash
+python3 -c "
+from providers import get_provider_profile
+import os
+p = get_provider_profile('polza')
+key = os.environ.get('POLZA_API_KEY', '')
+bal = p.check_balance(api_key=key)
+print(f'Balance: {bal} RUB')
+"
+```
+
+Or use the included script:
+
+```bash
+python3 scripts/check-balance.py
 ```
 
 ## Verification

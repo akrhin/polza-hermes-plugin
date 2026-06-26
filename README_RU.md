@@ -97,7 +97,7 @@ model:
 
 Поля объекта `provider` (см. [документацию](https://polza.ai/docs/gaidy/provider-selection)):
 
-| Поле | ��ип | Описание |
+| Поле | Тип | Описание |
 |------|-----|----------|
 | `only` | `string[]` | Белый список — только эти провайдеры |
 | `ignore` | `string[]` | Чёрный список — исключить провайдеры |
@@ -129,6 +129,48 @@ model:
     plugins:
       - id: web
         max_results: 5
+```
+
+Или через `polza_web_search` в `config.yaml` (прокидывается через
+`build_extra_body()` из `providers:` секции):
+
+```yaml
+# provider-specific context — must be enabled in config
+polza_web_search:
+  max_results: 5
+  engine: auto  # auto | native | exa
+```
+
+### Баланс
+
+Проверить баланс аккаунта Polza можно методом профиля:
+
+```bash
+python3 -c "
+from providers import get_provider_profile
+p = get_provider_profile('polza')
+# Замените *** на ваш ключ или используйте os.environ
+import os
+key = os.environ.get('POLZA_API_KEY', '')
+bal = p.check_balance(api_key=key)
+print(f'Баланс: {bal} руб.')
+"
+```
+
+Скрипт `scripts/check-balance.py` — если ещё не создан:
+
+```python
+#!/usr/bin/env python3
+"""Check Polza.ai account balance."""
+import os
+from providers import get_provider_profile
+p = get_provider_profile("polza")
+key = os.environ.get("POLZA_API_KEY") or input("POLZA_API_KEY: ")
+bal = p.check_balance(api_key=key)
+if bal is None:
+    print("Не удалось проверить баланс")
+else:
+    print(f"Баланс: {bal} руб.")
 ```
 
 ## Проверка
