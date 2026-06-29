@@ -2,7 +2,7 @@
 Polza.ai provider profile for Hermes Agent.
 
 Supports provider routing, reasoning tokens, web search,
-public model catalog, and RUB billing with balance tracking.
+and public model catalog.
 """
 
 from __future__ import annotations
@@ -102,48 +102,12 @@ class PolzaProfile(ProviderProfile):
 
         return extra_body, top_level
 
-    def check_balance(
-        self,
-        api_key: str | None = None,
-        timeout: float = 10.0,
-    ) -> float | None:
-        """Check Polza.ai account balance.
-
-        Makes a ``GET /v1/balance`` request. Returns the current balance
-        in RUB as a float, or None if the request fails.
-
-        Usage::
-
-            from providers import get_provider_profile
-            p = get_provider_profile("polza")
-            balance = p.check_balance(api_key="your_key")
-            print(f"Balance: {balance} RUB")
-        """
-        import json
-        import urllib.request
-
-        if not api_key:
-            return None
-
-        url = f"{self.base_url.rstrip('/')}/balance"
-        req = urllib.request.Request(url)
-        req.add_header("Authorization", f"Bearer {api_key}")
-        req.add_header("Accept", "application/json")
-
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                data = json.loads(resp.read().decode())
-            return float(data.get("amount", 0))
-        except Exception as exc:
-            logger.debug("check_balance(%s): %s", self.name, exc)
-            return None
-
 
 polza = PolzaProfile(
     name="polza",
     aliases=("polza-ai", "pza"),
     display_name="PolzaAI",
-    description="Polza.ai — unified API for 200+ models, RUB billing",
+    description="Polza.ai — unified API for 200+ models",
     signup_url="https://polza.ai/dashboard/api-keys",
     env_vars=("POLZA_API_KEY",),
     base_url="https://polza.ai/api/v1",

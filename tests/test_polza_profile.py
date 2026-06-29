@@ -190,19 +190,3 @@ class TestPolzaProfileFetchModels:
             assert all(isinstance(m, str) for m in result)
 
 
-class TestPolzaProfileCheckBalance:
-    """check_balance() — API-less structure tests."""
-
-    def test_has_check_balance_method(self):
-        p = _get_profile()
-        assert hasattr(p, "check_balance")
-
-    def test_check_balance_returns_none_without_key(self):
-        p = _get_profile()
-        result = p.check_balance(api_key=None)
-        assert result is None
-
-    def test_check_balance_returns_none_with_empty_key(self):
-        p = _get_profile()
-        result = p.check_balance(api_key="")
-        assert result is None

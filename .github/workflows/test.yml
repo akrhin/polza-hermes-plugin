@@ -37,4 +37,3 @@ jobs:
       - name: Lint check
         run: |
           python -m py_compile plugins/model-providers/polza/__init__.py
-          python -m py_compile scripts/check-balance.py

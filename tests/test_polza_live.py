@@ -9,7 +9,6 @@ from __future__ import annotations
 import os
 
 import pytest
-import requests
 from openai import OpenAI
 
 POLZA_API_KEY = os.environ.get("POLZA_API_KEY", "")
@@ -41,19 +40,6 @@ class TestPolzaLive:
         assert resp.choices[0].message.content
         assert resp.usage
         assert resp.usage.total_tokens > 0
-
-    @REQUIRES_KEY
-    def test_chat_completion_with_cost(self, client):
-        resp = client.chat.completions.create(
-            model="openai/gpt-4o-mini",
-            messages=[{"role": "user", "content": "Return just 'ok'"}],
-            max_tokens=5,
-        )
-        usage = resp.usage
-        assert usage.prompt_tokens > 0
-        assert usage.completion_tokens > 0
-        dump = usage.model_dump()
-        assert "cost_rub" in dump or dump.get("cost") is not None
 
     @REQUIRES_KEY
     def test_streaming(self, client):
@@ -105,19 +91,6 @@ class TestPolzaLive:
             max_tokens=5,
         )
         assert resp.choices[0].message.content
-
-    @REQUIRES_KEY
-    def test_balance(self):
-        resp = requests.get(
-            "https://polza.ai/api/v1/balance",
-            headers={"Authorization": f"Bearer {POLZA_API_KEY}"},
-            timeout=10,
-        )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert "amount" in data
-        amount = float(data["amount"])
-        assert amount >= 0
 
     @REQUIRES_KEY
     def test_reasoning(self, client):

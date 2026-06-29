@@ -2,7 +2,7 @@
 
 [🇬🇧 English](README.md)
 
-> **Унифицированный API для сотен AI-моделей** с оплатой в рублях, выбором
+> **Унифицированный API для сотен AI-моделей** с выбором
 > провайдера, reasoning-токенами и веб-поиском — как встроенный провайдер
 > Hermes Agent.
 
@@ -15,8 +15,7 @@
 - **Reasoning** — o-series, DeepSeek R1, Claude Opus, Grok
 - **Веб-поиск** — доступ к реальному интернету для любой модели
 - **Публичный каталог моделей** — `GET /v1/models` без API-ключа
-- **Оплата в рублях** — `cost_rub` в каждом ответе
-- **Баланс** — `GET /v1/balance` для контроля расходов
+
 
 ## Установка
 
@@ -121,22 +120,12 @@ model:
 polza_web_search:
   max_results: 5
   engine: auto  # auto | native | exa
-```
 
-### Баланс
+## WebUI
 
-```bash
-python3 scripts/check-balance.py
-```
+Для Polza.ai есть [Hermes WebUI](https://github.com/nesquena/hermes-webui) с расширением:
 
-Или одной строкой:
+- **Виджет баланса и расходов** — плавающий баланс, дневная статистика по моделям, управление API-ключом в браузере
+- **Галерея расширений** — установка через Settings → Extensions
 
-```bash
-python3 -c "
-from providers import get_provider_profile
-import os
-p = get_provider_profile('polza')
-bal = p.check_balance(api_key=os.environ.get('POLZA_API_KEY', ''))
-print(f'Баланс: {bal} руб.')
-"
-```
+Подробнее: [polza-webui-extensions](https://github.com/akrhin/polza-webui-extensions)

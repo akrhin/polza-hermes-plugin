@@ -2,7 +2,7 @@
 
 [🇷🇺 Русский](README_RU.md)
 
-> **Unified API for 200+ AI models** with RUB billing, provider routing,
+> **Unified API for 200+ AI models** with provider routing,
 > reasoning tokens, and web search — now a first-class Hermes Agent provider.
 
 ---
@@ -14,8 +14,7 @@
 - **Reasoning tokens** — native support for o-series, DeepSeek R1, Claude Opus, Grok
 - **Web search** — real-time internet access for any model
 - **Public model catalog** — `GET /v1/models` requires no API key
-- **RUB billing** — prices in rubles, `cost_rub` in every response
-- **Balance tracking** — `GET /v1/balance` for spending monitoring
+
 
 ## Installation
 
@@ -122,20 +121,11 @@ polza_web_search:
   engine: auto  # auto | native | exa
 ```
 
-### Balance Check
+## WebUI
 
-```bash
-python3 scripts/check-balance.py
-```
+Polza.ai has a dedicated [Hermes WebUI](https://github.com/nesquena/hermes-webui) with:
 
-Or inline:
+- **Balance and cost widget** — floating balance display, daily spending breakdown by model, API key management in browser
+- **Extension gallery** — install in Settings → Extensions
 
-```bash
-python3 -c "
-from providers import get_provider_profile
-import os
-p = get_provider_profile('polza')
-bal = p.check_balance(api_key=os.environ.get('POLZA_API_KEY', ''))
-print(f'Balance: {bal} RUB')
-"
-```
+See [polza-webui-extensions](https://github.com/akrhin/polza-webui-extensions) for installation and usage.
