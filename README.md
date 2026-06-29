@@ -61,7 +61,7 @@ Set `polza` as your provider in `config.yaml`:
 ```yaml
 model:
   provider: polza
-  model: deepseek/deepseek-chat
+  model: deepseek-chat
 ```
 
 ## Configuration
@@ -71,7 +71,7 @@ model:
 ```yaml
 model:
   provider: polza
-  model: openai/gpt-4o-mini
+  model: gpt-4o-mini
 ```
 
 ### With Provider Routing (recommended)
@@ -82,7 +82,7 @@ modes (CLI, Gateway, WebUI) and mirrors the Polza API format:
 ```yaml
 model:
   provider: polza
-  model: deepseek/deepseek-v4-flash
+  model: deepseek-v4-flash
   extra_body:
     provider:
       only:
