@@ -120,6 +120,7 @@ model:
 polza_web_search:
   max_results: 5
   engine: auto  # auto | native | exa
+```
 
 ## WebUI
 
