@@ -9,14 +9,13 @@
 
 ## Features
 
-- **OpenAI-compatible** — standard Chat Completions, Tools, Structured Output, Streaming
+- **OpenAI-compatible** — Chat Completions, Tools, Structured Output, Streaming
 - **Provider routing** — choose upstream providers by priority, price, or latency
-- **Reasoning tokens** — native support for o-series, DeepSeek R1, Claude Opus 4.7+, Grok
+- **Reasoning tokens** — native support for o-series, DeepSeek R1, Claude Opus, Grok
 - **Web search** — real-time internet access for any model
 - **Public model catalog** — `GET /v1/models` requires no API key
 - **RUB billing** — prices in rubles, `cost_rub` in every response
 - **Balance tracking** — `GET /v1/balance` for spending monitoring
-- **Plugins** — file parser, response healing, and more
 
 ## Installation
 
@@ -29,7 +28,7 @@ ln -sf "$(pwd)/polza-hermes-plugin/plugins/model-providers/polza" \
        ~/.hermes/plugins/model-providers/polza
 ```
 
-Or copy the `plugins/model-providers/polza/` directory directly into
+Or copy `plugins/model-providers/polza/` directly into
 `~/.hermes/plugins/model-providers/`.
 
 ### 2. Add API Key
@@ -47,16 +46,12 @@ hermes auth add polza --type api-key --api-key pza_your_key_here
 hermes auth add polza --type api-key --api-key pza_second_key
 ```
 
-With rotation strategy in `config.yaml`:
-
 ```yaml
 credential_pool_strategies:
-  polza: round_robin  # or fill_first, least_used
+  polza: round_robin
 ```
 
 ### 3. Configure Hermes
-
-Set `polza` as your provider in `config.yaml`:
 
 ```yaml
 model:
@@ -76,8 +71,7 @@ model:
 
 ### With Provider Routing (recommended)
 
-Pass Polza's `provider` object directly via `extra_body`. This works in all
-modes (CLI, Gateway, WebUI) and mirrors the Polza API format:
+Pass Polza's `provider` object via `extra_body` — works in CLI, Gateway, and WebUI:
 
 ```yaml
 model:
@@ -93,7 +87,7 @@ model:
       allow_fallbacks: true
 ```
 
-Available `provider` fields (see [Polza docs](https://polza.ai/docs/gaidy/provider-selection)):
+Available `provider` fields:
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -104,22 +98,13 @@ Available `provider` fields (see [Polza docs](https://polza.ai/docs/gaidy/provid
 | `max_price` | `object` | Max price per 1M tokens: `{prompt, completion}` |
 | `allow_fallbacks` | `boolean` | Fall back to other providers on error |
 
-**Why `extra_body` over top-level `providers:`?** The extra_body approach is
-provider-specific, unambiguous, and survives the CLI↔Gateway config split.
-Top-level `providers:` works only in CLI mode; `provider_routing:` works only
-in Gateway/WebUI mode. `extra_body` works in both.
-
 ### With Reasoning
 
 ```yaml
 reasoning_effort: high  # xhigh | high | medium | low | minimal | none
 ```
 
-See [Polza reasoning docs](https://polza.ai/docs/osobennosti/reasoning-tokens).
-
 ### With Web Search
-
-Polza supports web search via the `plugins` field in `extra_body`:
 
 ```yaml
 model:
@@ -129,106 +114,28 @@ model:
         max_results: 5
 ```
 
-Or via `polza_web_search` in `config.yaml` (forwarded through
-`build_extra_body()` from the `providers:` section):
+Or via `config.yaml`:
 
 ```yaml
-# provider-specific context — forwarded to build_extra_body()
 polza_web_search:
   max_results: 5
   engine: auto  # auto | native | exa
 ```
 
-### Balance check
+### Balance Check
 
-Check your Polza account balance using the profile method:
+```bash
+python3 scripts/check-balance.py
+```
+
+Or inline:
 
 ```bash
 python3 -c "
 from providers import get_provider_profile
 import os
 p = get_provider_profile('polza')
-key = os.environ.get('POLZA_API_KEY', '')
-bal = p.check_balance(api_key=key)
+bal = p.check_balance(api_key=os.environ.get('POLZA_API_KEY', ''))
 print(f'Balance: {bal} RUB')
 "
 ```
-
-Or use the included script:
-
-```bash
-python3 scripts/check-balance.py
-```
-
-## Verification
-
-After installation, check that Hermes recognises the provider:
-
-```bash
-hermes model  # Should show "polza" in the provider list
-hermes doctor # Should include Polza health check
-```
-
-## How it works
-
-This plugin declares a `ProviderProfile` that Hermes discovers automatically.
-Every integration point — auth, model catalog, CLI picker, health checks,
-auxiliary tasks — reads from the profile. No core files are modified.
-
-See [`DEVELOPMENT.md`](DEVELOPMENT.md) for implementation details.
-
----
-
-## Limitations (upstream PR dependencies)
-
-This plugin is a **pure plugin** — no Hermes core files are modified. However, two
-upstream Pull Requests are required for **full functionality**:
-
-| PR | Scope | Without it, this breaks |
-|----|-------|------------------------|
-| [#53033](https://github.com/NousResearch/hermes-agent/pull/53033) | Provider routing on auxiliary calls (summary, compression, vision) | Routing preferences (`only`/`ignore`/`sort`) silently lost on non-chat calls |
-| [#53063](https://github.com/NousResearch/hermes-agent/pull/53063) | Pricing estimation + `hermes doctor` validation + `cost_rub` extraction | WebUI shows `N/A` for cost; `hermes doctor` shows false-positive warnings about unknown provider/vendor prefix |
-
-### ❌ Without PR #53063
-
-- Cost display in WebUI shows **`N/A`** or zero — pricing estimation falls back to `unknown`
-- `hermes doctor` prints spurious warnings:
-  ```
-  model.provider 'polza' is unknown.
-  model.default 'deepseek/deepseek-v4-flash' is vendor-prefixed but model.provider is 'polza'.
-  ```
-- `cost_rub` from Polza responses is **not extracted** — exact RUB billing info ignored
-
-### ✅ Works without any PR
-
-- Basic chat completions, streaming, tools, structured output
-- Provider routing on **chat** calls (via `model.extra_body.provider` in `config.yaml`)
-- Reasoning tokens passthrough
-- Public model catalog (`fetch_models` requires no API key)
-- Balance tracking (`check_balance`, `polza-doctor`)
-- Web search plugin, file parser plugin
-- Session ID correlation
-- All 30 unit tests pass
-
-### Local workaround
-
-If you can't wait for upstream merge, cherry-pick the PR commits into your local
-Hermes Agent:
-
-```bash
-cd ~/git/hermes-agent
-
-# PR #53033 — auxiliary routing
-git fetch origin pull/53033/head:pr/53033
-git cherry-pick pr/53033
-
-# PR #53063 — pricing + doctor
-git fetch origin pull/53063/head:pr/53063
-git cherry-pick pr/53063
-
-cp agent/chat_completion_helpers.py ~/.hermes/hermes-agent/agent/
-cp agent/usage_pricing.py agent/model_metadata.py ~/.hermes/hermes-agent/agent/
-cp hermes_cli/doctor.py ~/.hermes/hermes-agent/hermes_cli/
-```
-
-Then restart the gateway and WebUI.
