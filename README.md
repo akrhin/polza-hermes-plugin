@@ -84,6 +84,9 @@ model:
         - DeepSeek
         - OpenAI
       sort: price
+      max_price:
+        prompt: 10
+        completion: 20
       allow_fallbacks: true
 ```
 
@@ -99,7 +102,7 @@ model:
 | `ignore` | `string[]` | Чёрный список — исключить провайдеры |
 | `order` | `string[]` | Приоритетный порядок |
 | `sort` | `string` | Сортировка: `price`, `latency`, `throughput` |
-| `max_price` | `object` | Макс. цена за 1М токенов: `{prompt, completion}` |
+| `max_price` | `object` | Макс. цена: `{prompt, completion, image, audio, request}` |
 | `allow_fallbacks` | `boolean` | Fallback на другие провайдеры при ошибке |
 
 ### Alias-формат (@-синтаксис)
@@ -129,6 +132,9 @@ model:
 
 ### С веб-поиском
 
+Активируется через `model.extra_body.plugins` в конфиге (работает во всех
+точках входа) или через контекст агента (`polza_web_search`):
+
 ```yaml
 model:
   provider: polza
@@ -139,9 +145,17 @@ model:
         max_results: 5
 ```
 
+Параметры:
+
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `max_results` | `number` | Количество результатов (1–10) |
+| `engine` | `string` | Движок: `auto`, `native`, `exa` |
+
 ### С исправлением ответов (Response Healing)
 
-Автоматически чинит невалидный JSON в ответах модели:
+Автоматически чинит невалидный JSON в ответах модели. Полезно при
+использовании `response_format` со `strict: true`:
 
 ```yaml
 model:
@@ -152,6 +166,50 @@ model:
       - id: response-healing
         enabled: true
 ```
+
+### С парсингом файлов (File Parser)
+
+Извлекает текст из PDF, DOCX и TXT. Плагин `file-parser` активируется
+через `model.extra_body.plugins`:
+
+```yaml
+model:
+  provider: polza
+  model: openai/gpt-4o
+  extra_body:
+    plugins:
+      - id: file-parser
+        pdf:
+          engine: mistral-ocr  # pdf-text | mistral-ocr | native
+```
+
+Параметры `pdf.engine`:
+
+| Значение | Описание |
+|----------|----------|
+| `pdf-text` | Извлечение текста из PDF (быстро, без OCR) |
+| `mistral-ocr` | OCR через Mistral для сканов и изображений |
+| `native` | Встроенная обработка провайдера |
+
+### Несколько плагинов одновременно
+
+```yaml
+model:
+  provider: polza
+  model: openai/gpt-4o
+  extra_body:
+    plugins:
+      - id: web
+        max_results: 3
+      - id: response-healing
+      - id: file-parser
+        pdf:
+          engine: mistral-ocr
+```
+
+> **Примечание:** Плагины из config.yaml можно переопределить через
+> контекст агента — например, `polza_web_search={"max_results": 10}`
+> перезапишет конфиг для текущего запроса.
 
 ### С reasoning
 

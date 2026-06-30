@@ -56,14 +56,21 @@ or ``reasoning`` fields. Same logic applies in ``build_api_kwargs_extras()``:
 
 Polza provides server-side plugins via the ``plugins`` array in the request body:
 
-| Plugin ID          | Context key             | Description                                   |
-|--------------------|------------------------|-----------------------------------------------|
-| ``web``            | ``polza_web_search``   | Internet search augmentation                  |
-| ``file-parser``    | ``polza_file_parser``  | PDF/DOCX text extraction with engine selection |
-| ``response-healing`` | ``polza_response_healing`` | Automatic invalid JSON fix in responses    |
+| Plugin ID          | Context key             | Config key                     | Description                                   |
+|--------------------|------------------------|--------------------------------|-----------------------------------------------|
+| ``web``            | ``polza_web_search``   | ``model.extra_body.plugins[]`` | Internet search augmentation                  |
+| ``file-parser``    | ``polza_file_parser``  | ``model.extra_body.plugins[]`` | PDF/DOCX text extraction with engine selection |
+| ``response-healing`` | ``polza_response_healing`` | ``model.extra_body.plugins[]`` | Automatic invalid JSON fix in responses    |
 
-Each is activated by passing a dict to the corresponding context key in
-``build_extra_body()``. Multiple plugins can be active simultaneously.
+**Two-layer resolution:**
+
+1. **Config baseline** — ``_plugins_from_config()`` reads ``model.extra_body.plugins``
+   from ``config.yaml`` and returns known plugin entries.
+2. **Context override** — if a context key (``polza_web_search``, etc.) is present,
+   its value replaces the config entry for that plugin ID.
+
+This means plugins can be enabled globally in ``config.yaml`` and overridden
+per-request via agent context — identical pattern to the provider routing.
 
 ## Design Decisions
 
@@ -126,4 +133,8 @@ No transformation needed — `PolzaProfile` passes it through.
 
 Polza uses a non-standard `plugins: [{id: "web", ...}]` field.
 This is activated via `build_extra_body()` when context includes
-`polza_web_search`, or directly via `model.extra_body.plugins`.
+`polza_web_search`, or via `model.extra_body.plugins` in config.yaml.
+
+### File parser and response healing
+
+Same plugin mechanism — see the [Plugins system](#plugins-system) section above.

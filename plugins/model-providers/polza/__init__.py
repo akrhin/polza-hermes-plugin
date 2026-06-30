@@ -20,8 +20,15 @@ logger = logging.getLogger(__name__)
 class PolzaProfile(ProviderProfile):
     """Polza.ai aggregator — provider routing, reasoning, plugins passthrough."""
 
-    # ── Alias constants ──────────────────────────────────────
+    # ── Constants ────────────────────────────────────────────
     _ALIAS_KEYS = frozenset({"provider", "reasoning_effort", "allow_fallbacks"})
+
+    # Maps Polza plugin ID → Hermes context key
+    _PLUGIN_ID_TO_CTX_KEY = {
+        "web": "polza_web_search",
+        "file-parser": "polza_file_parser",
+        "response-healing": "polza_response_healing",
+    }
 
     def fetch_models(
         self,
@@ -59,6 +66,11 @@ class PolzaProfile(ProviderProfile):
         When alias format is active, ``model.extra_body.provider`` and
         ``provider_preferences`` are *skipped* to avoid 400 conflict with
         Polza's alias server-side processing.
+
+        Plugin loading order:
+          1. ``model.extra_body.plugins`` from config.yaml (baseline)
+          2. Context keys ``polza_web_search``, ``polza_file_parser``,
+             ``polza_response_healing`` — override config by plugin ID
         """
         body: dict[str, Any] = {}
 
@@ -85,19 +97,19 @@ class PolzaProfile(ProviderProfile):
                 body["provider"] = prefs
 
         # ── Plugins ─────────────────────────────────────────────
-        plugins: list[dict[str, Any]] = []
+        # Sources (context overrides config):
+        #   1. model.extra_body.plugins from config.yaml (base)
+        #   2. context keys polza_web_search / polza_file_parser /
+        #      polza_response_healing (override)
+        plugins: list[dict[str, Any]] = self._plugins_from_config() or []
 
-        web_search = context.get("polza_web_search")
-        if web_search:
-            plugins.append({"id": "web", **web_search})
-
-        file_parser = context.get("polza_file_parser")
-        if file_parser:
-            plugins.append({"id": "file-parser", **file_parser})
-
-        response_healing = context.get("polza_response_healing")
-        if response_healing:
-            plugins.append({"id": "response-healing", **response_healing})
+        # Apply context-level plugin overrides
+        for plugin_id, ctx_key in self._PLUGIN_ID_TO_CTX_KEY.items():
+            ctx_val = context.get(ctx_key)
+            if ctx_val is not None:
+                # Remove config version of this plugin if exists
+                plugins = [p for p in plugins if p.get("id") != plugin_id]
+                plugins.append({"id": plugin_id, **ctx_val})
 
         if plugins:
             body["plugins"] = plugins
@@ -205,6 +217,37 @@ class PolzaProfile(ProviderProfile):
                 return dict(provider)
         except Exception:
             logger.debug("Could not read model.extra_body.provider from config", exc_info=True)
+        return None
+
+    @staticmethod
+    def _plugins_from_config() -> list[dict[str, Any]] | None:
+        """Read ``model.extra_body.plugins`` from config.yaml.
+
+        Returns a list of plugin dicts (e.g. ``[{"id": "web", "max_results": 5}]``)
+        or None if no plugins are defined in config.
+
+        This allows users to enable plugins (web search, file parser, response
+        healing) globally in config.yaml — works in all entry points without
+        per-platform context keys.
+        """
+        try:
+            import yaml
+
+            with open(os.path.expanduser("~/.hermes/config.yaml")) as f:
+                cfg = yaml.safe_load(f)
+            model_cfg = cfg.get("model", {})
+            if not isinstance(model_cfg, dict):
+                return None
+            extra_body = model_cfg.get("extra_body")
+            if not isinstance(extra_body, dict):
+                return None
+            plugins = extra_body.get("plugins")
+            if isinstance(plugins, list) and plugins:
+                # Filter to known plugin IDs only
+                known = PolzaProfile._PLUGIN_ID_TO_CTX_KEY.keys()
+                return [dict(p) for p in plugins if isinstance(p, dict) and p.get("id") in known]
+        except Exception:
+            logger.debug("Could not read model.extra_body.plugins from config", exc_info=True)
         return None
 
 

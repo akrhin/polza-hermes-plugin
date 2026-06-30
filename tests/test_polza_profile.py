@@ -360,3 +360,27 @@ class TestPolzaProfileParseModelAlias:
         assert result is None or len(result) == 0
 
 
+class TestPolzaProfileConfigFallback:
+    """_extra_body_provider_from_config() and _plugins_from_config() — config.yaml reading."""
+
+    def test_provider_from_real_config(self):
+        p = _get_profile()
+        result = p._extra_body_provider_from_config()
+        # Reads from actual ~/.hermes/config.yaml
+        if result is not None:
+            assert isinstance(result, dict)
+            assert "only" in result or "sort" in result or "order" in result
+        # If config has no extra_body.provider, None is also valid
+
+    def test_plugins_from_real_config(self):
+        p = _get_profile()
+        result = p._plugins_from_config()
+        # Reads from actual ~/.hermes/config.yaml
+        # May be None (no plugins in config) or a list
+        if result is not None:
+            assert isinstance(result, list)
+            for pl in result:
+                assert "id" in pl
+                assert pl["id"] in ("web", "file-parser", "response-healing")
+
+
