@@ -72,6 +72,9 @@ Polza provides server-side plugins via the ``plugins`` array in the request body
 This means plugins can be enabled globally in ``config.yaml`` and overridden
 per-request via agent context — identical pattern to the provider routing.
 
+> **Note:** Plugins from config.yaml run on **every** API request. There is no
+> per-message toggle — they are always active once configured.
+
 ## Design Decisions
 
 ### Plugin-only: no core edits

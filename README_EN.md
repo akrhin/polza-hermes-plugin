@@ -83,6 +83,9 @@ model:
         - DeepSeek
         - OpenAI
       sort: price
+      max_price:
+        prompt: 10
+        completion: 20
       allow_fallbacks: true
 ```
 
@@ -98,7 +101,7 @@ Available `provider` fields:
 | `ignore` | `string[]` | Blacklist — exclude these providers |
 | `order` | `string[]` | Priority list |
 | `sort` | `string` | Sort by `price`, `latency`, or `throughput` |
-| `max_price` | `object` | Max price per 1M tokens: `{prompt, completion}` |
+| `max_price` | `object` | Max price: `{prompt, completion, image, audio, request}` |
 | `allow_fallbacks` | `boolean` | Fall back to other providers on error |
 
 ### Alias format (@-syntax)
@@ -126,7 +129,25 @@ Multiple aliases can be combined with ``&``:
 > **Note:** When alias is present, `model.extra_body.provider` is **skipped**
 > to avoid `400` conflict on the Polza side.
 
-### With Web Search
+### Polza Plugins (server-side processing)
+
+Polza provides server-side plugins that process **every** API request.
+They are enabled globally via `model.extra_body.plugins`.
+
+> ⚠️ **Important:** Plugins from `model.extra_body.plugins` run on **every**
+> request — you can't toggle them for a single message. If you add `web`,
+> every request will trigger a web search and consume tokens.
+>
+> Pricing: model tokens + plugin processing tokens only.
+> To disable a plugin: remove it from config.yaml and restart the gateway.
+
+| Plugin | ID | What it does | When useful |
+|--------|----|-------------|-------------|
+| Web search | `web` | Searches the web, adds results to model context | Models without built-in search (DeepSeek, Gemini) |
+| Response healing | `response-healing` | Auto-fixes invalid JSON in responses | When using `response_format: {type: json_schema}` |
+| File parser | `file-parser` | Extracts text from PDF/DOCX/TXT | When sending documents in chat |
+
+#### Web search (web)
 
 ```yaml
 model:
@@ -138,9 +159,19 @@ model:
         max_results: 5
 ```
 
-### With Response Healing
+Parameters:
 
-Automatically fixes invalid JSON in model responses:
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `max_results` | `number` | Results count (1–10) |
+| `engine` | `string` | Search engine: `auto`, `native`, `exa` |
+
+> For models with native search (OpenAI, Anthropic, xAI) — provider handles it.
+> For others (DeepSeek, Gemini) — routed via Exa.
+
+#### Response healing (response-healing)
+
+Auto-fixes invalid JSON. Useful with `strict: true` schemas:
 
 ```yaml
 model:
@@ -152,28 +183,51 @@ model:
         enabled: true
 ```
 
+#### PDF parsing (file-parser)
+
+```yaml
+model:
+  provider: polza
+  model: openai/gpt-4o
+  extra_body:
+    plugins:
+      - id: file-parser
+        pdf:
+          engine: mistral-ocr  # pdf-text | mistral-ocr | native
+```
+
+`pdf.engine` options:
+
+| Value | Description |
+|-------|-------------|
+| `pdf-text` | Text extraction (fast, no OCR) |
+| `mistral-ocr` | OCR via Mistral for scanned docs |
+| `native` | Provider's built-in processing |
+
+#### Multiple plugins
+
+```yaml
+model:
+  provider: polza
+  model: openai/gpt-4o
+  extra_body:
+    plugins:
+      - id: web
+        max_results: 3
+      - id: response-healing
+      - id: file-parser
+        pdf:
+          engine: mistral-ocr
+```
+
+> **Note:** Config-based plugins can be overridden via agent context
+> (e.g. `polza_web_search={"max_results": 10}` overrides for that request).
+> But you can't fully disable them from chat — only by editing config.yaml.
+
 ### With Reasoning
 
 ```yaml
 reasoning_effort: high  # xhigh | high | medium | low | minimal | none
-```
-
-### With Web Search
-
-```yaml
-model:
-  extra_body:
-    plugins:
-      - id: web
-        max_results: 5
-```
-
-Or via `config.yaml`:
-
-```yaml
-polza_web_search:
-  max_results: 5
-  engine: auto  # auto | native | exa
 ```
 
 ## WebUI
