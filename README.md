@@ -68,9 +68,10 @@ model:
   model: gpt-4o-mini
 ```
 
-### With Provider Routing (recommended)
+### With Provider Routing
 
-Pass Polza's `provider` object via `extra_body` — works in CLI, Gateway, and WebUI:
+Pass Polza's `provider` object via `extra_body` — works in CLI, Gateway,
+and WebUI (read as a fallback by the plugin):
 
 ```yaml
 model:
@@ -81,10 +82,13 @@ model:
       only:
         - DeepSeek
         - OpenAI
-        - Anthropic
       sort: price
       allow_fallbacks: true
 ```
+
+> **Note:** `model.extra_body` is consumed by the Polza plugin directly
+> (not by Hermes core). This means it works in all entry points —
+> CLI, Telegram, WebUI — with no platform-specific config keys.
 
 Available `provider` fields:
 

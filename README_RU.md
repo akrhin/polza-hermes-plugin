@@ -69,9 +69,10 @@ model:
   model: openai/gpt-4o-mini
 ```
 
-### С выбором провайдера (рекомендуется)
+### С выбором провайдера
 
-Объект `provider` передаётся через `extra_body` — работает в CLI, Gateway и WebUI:
+Объект `provider` передаётся через `extra_body` — работает в CLI, Gateway
+и WebUI (читается плагином как fallback):
 
 ```yaml
 model:
@@ -82,10 +83,13 @@ model:
       only:
         - DeepSeek
         - OpenAI
-        - Anthropic
       sort: price
       allow_fallbacks: true
 ```
+
+> **Примечание:** `model.extra_body` читается плагином Polza напрямую
+> (не ядром Hermes). Поэтому работает во всех точках входа —
+> CLI, Telegram, WebUI — без платформо-специфичных ключей в конфиге.
 
 Поля объекта `provider`:
 

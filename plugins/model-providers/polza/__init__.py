@@ -8,6 +8,7 @@ and public model catalog.
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from providers import register_provider
@@ -42,6 +43,13 @@ class PolzaProfile(ProviderProfile):
           - Provider routing (``provider: {only, ignore, order, sort, ...}``)
           - Web search plugin (``plugins: [{id: "web", ...}]``)
           - File parser plugin (``plugins: [{id: "file-parser", ...}]``)
+
+        Provider routing priority:
+          1. ``provider_preferences`` from the Hermes agent context
+             (set via agent.providers_allowed/ignored/order/provider_sort)
+          2. ``model.extra_body.provider`` from config.yaml (fallback)
+             — allows users to set provider filtering in config.yaml
+               without needing CLI flags or agent-level attrs.
         """
         body: dict[str, Any] = {}
 
@@ -51,9 +59,11 @@ class PolzaProfile(ProviderProfile):
             body["session_id"] = session_id
 
         # ── Provider routing ────────────────────────────────────
-        # Maps Hermes ``provider_preferences`` → Polza ``provider`` object.
-        # Fields: only, ignore, order, sort, max_price, allow_fallbacks.
+        # Priority 1: Hermes agent context (provider_preferences)
+        # Priority 2: model.extra_body.provider from config (fallback)
         prefs = context.get("provider_preferences")
+        if not prefs:
+            prefs = self._extra_body_provider_from_config()
         if prefs:
             body["provider"] = prefs
 
@@ -74,6 +84,36 @@ class PolzaProfile(ProviderProfile):
             body["plugins"] = plugins
 
         return body
+
+    @staticmethod
+    def _extra_body_provider_from_config() -> dict[str, Any] | None:
+        """Read ``model.extra_body.provider`` from config.yaml.
+
+        Returns the ``provider`` dict inside ``model.extra_body`` when
+        present and valid, or None if no config-based routing is defined.
+
+        This allows users to set provider filtering in a single place
+        (the ``model`` section) that works for **all** entry points:
+        CLI, WebUI, Telegram, Discord — without needing per-platform
+        agent-level attrs.
+        """
+        try:
+            import yaml
+
+            with open(os.path.expanduser("~/.hermes/config.yaml")) as f:
+                cfg = yaml.safe_load(f)
+            model_cfg = cfg.get("model", {})
+            if not isinstance(model_cfg, dict):
+                return None
+            extra_body = model_cfg.get("extra_body")
+            if not isinstance(extra_body, dict):
+                return None
+            provider = extra_body.get("provider")
+            if isinstance(provider, dict) and provider:
+                return dict(provider)
+        except Exception:
+            logger.debug("Could not read model.extra_body.provider from config", exc_info=True)
+        return None
 
     def build_api_kwargs_extras(
         self,

@@ -54,13 +54,34 @@ model:
       allow_fallbacks: true
 ```
 
-This is provider-specific and unambiguous. The top-level `providers:` key works
-only in CLI mode; `provider_routing:` only in Gateway/WebUI mode. `extra_body`
-works in both.
+#### Two-layer resolution
+
+The `model.extra_body.provider` value is **not** read automatically by Hermes
+core for built-in providers — it's consumed by the Polza plugin itself:
+
+1. **Agent context** (`provider_preferences`, set via `agent.providers_allowed`
+   from CLI flags or `/providers` command) — has priority.
+2. **Config fallback** — `PolzaProfile._extra_body_provider_from_config()`
+   reads `model.extra_body.provider` from `config.yaml` when no context-level
+   preferences are set.
+
+This two-layer design means:
+
+| Entry point | Source of routing | How it reaches Polza API |
+|-------------|-----------------|--------------------------|
+| CLI (`--provider polza --providers-only DeepSeek`) | `agent.providers_allowed` → `provider_preferences` | Context (layer 1) |
+| Telegram, WebUI, Discord | `model.extra_body.provider` from config.yaml | Config fallback (layer 2) |
+| `/providers` runtime command | `agent.providers_allowed/ignored/order` | Context (layer 1, overrides config) |
 
 The `build_extra_body()` hook in the profile also crosses `provider_preferences`
 from `providers:` / `provider_routing:` into `extra_body.provider` — but the
-direct `extra_body` approach is simpler and recommended.
+direct `extra_body` approach is simpler and recommended for most setups.
+
+#### Why not top-level config keys
+
+The top-level `providers:` key works only in CLI mode; `provider_routing:` only
+in Gateway/WebUI mode. `model.extra_body.provider` is a single source of truth
+that hits both because the plugin reads it as a fallback.
 
 ### Reasoning
 
