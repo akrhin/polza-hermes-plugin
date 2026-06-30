@@ -1,24 +1,25 @@
 # Polza.ai Hermes Provider Plugin
 
-[🇷🇺 Русский](README_RU.md)
+[🇬🇧 English](README_EN.md)
 
-> **Unified API for 200+ AI models** with provider routing,
-> reasoning tokens, and web search — now a first-class Hermes Agent provider.
+> **Унифицированный API для сотен AI-моделей** с выбором
+> провайдера, reasoning-токенами и веб-поиском — как встроенный провайдер
+> Hermes Agent.
 
 ---
 
-## Features
+## Возможности
 
-- **OpenAI-compatible** — Chat Completions, Tools, Structured Output, Streaming
-- **Provider routing** — choose upstream providers by priority, price, or latency
-- **Reasoning tokens** — native support for o-series, DeepSeek R1, Claude Opus, Grok
-- **Web search** — real-time internet access for any model
-- **Public model catalog** — `GET /v1/models` requires no API key
+- **OpenAI-совместимость** — Chat Completions, Tools, Structured Output, Streaming
+- **Выбор провайдера** — приоритет, сортировка по цене, белый/чёрный список
+- **Reasoning** — o-series, DeepSeek R1, Claude Opus, Grok
+- **Веб-поиск** — доступ к реальному интернету для любой модели
+- **Публичный каталог моделей** — `GET /v1/models` без API-ключа
 
 
-## Installation
+## Установка
 
-### 1. Clone plugin into Hermes
+### 1. Клонируйте репозиторий
 
 ```bash
 git clone https://github.com/akrhin/polza-hermes-plugin.git
@@ -27,22 +28,22 @@ ln -sf "$(pwd)/polza-hermes-plugin/plugins/model-providers/polza" \
        ~/.hermes/plugins/model-providers/polza
 ```
 
-Or copy `plugins/model-providers/polza/` directly into
+Или скопируйте `plugins/model-providers/polza/` в
 `~/.hermes/plugins/model-providers/`.
 
-### 2. Add API Key
+### 2. Добавьте API-ключ
 
-**Option A — Environment variable** (recommended for a single key):
+**Вариант А — переменная окружения** (рекомендуется для одного ключа):
 
 ```bash
-echo 'POLZA_API_KEY=pza_yo...ere' >> ~/.hermes/.env
+echo 'POLZA_API_KEY=pza_ключ' >> ~/.hermes/.env
 ```
 
-**Option B — Credential pool** (multiple keys with rotation):
+**Вариант Б — Credential pool** (несколько ключей с ротацией):
 
 ```bash
-hermes auth add polza --type api-key --api-key pza_your_key_here
-hermes auth add polza --type api-key --api-key pza_second_key
+hermes auth add polza --type api-key --api-key pza_ключ1
+hermes auth add polza --type api-key --api-key pza_ключ2
 ```
 
 ```yaml
@@ -50,33 +51,33 @@ credential_pool_strategies:
   polza: round_robin
 ```
 
-### 3. Configure Hermes
+### 3. Настройте Hermes
 
 ```yaml
 model:
   provider: polza
-  model: deepseek-chat
+  model: deepseek/deepseek-chat
 ```
 
-## Configuration
+## Настройка
 
-### Basic
+### Базовая
 
 ```yaml
 model:
   provider: polza
-  model: gpt-4o-mini
+  model: openai/gpt-4o-mini
 ```
 
-### With Provider Routing
+### С выбором провайдера
 
-Pass Polza's `provider` object via `extra_body` — works in CLI, Gateway,
-and WebUI (read as a fallback by the plugin):
+Объект `provider` передаётся через `extra_body` — работает в CLI, Gateway
+и WebUI (читается плагином как fallback):
 
 ```yaml
 model:
   provider: polza
-  model: deepseek-v4-flash
+  model: deepseek/deepseek-v4-flash
   extra_body:
     provider:
       only:
@@ -86,47 +87,47 @@ model:
       allow_fallbacks: true
 ```
 
-> **Note:** `model.extra_body` is consumed by the Polza plugin directly
-> (not by Hermes core). This means it works in all entry points —
-> CLI, Telegram, WebUI — with no platform-specific config keys.
+> **Примечание:** `model.extra_body` читается плагином Polza напрямую
+> (не ядром Hermes). Поэтому работает во всех точках входа —
+> CLI, Telegram, WebUI — без платформо-специфичных ключей в конфиге.
 
-Available `provider` fields:
+Поля объекта `provider`:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `only` | `string[]` | Whitelist — use only these providers |
-| `ignore` | `string[]` | Blacklist — exclude these providers |
-| `order` | `string[]` | Priority list |
-| `sort` | `string` | Sort by `price`, `latency`, or `throughput` |
-| `max_price` | `object` | Max price per 1M tokens: `{prompt, completion}` |
-| `allow_fallbacks` | `boolean` | Fall back to other providers on error |
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `only` | `string[]` | Белый список — только эти провайдеры |
+| `ignore` | `string[]` | Чёрный список — исключить провайдеры |
+| `order` | `string[]` | Приоритетный порядок |
+| `sort` | `string` | Сортировка: `price`, `latency`, `throughput` |
+| `max_price` | `object` | Макс. цена за 1М токенов: `{prompt, completion}` |
+| `allow_fallbacks` | `boolean` | Fallback на другие провайдеры при ошибке |
 
-### Alias format (@-syntax)
+### Alias-формат (@-синтаксис)
 
-When your client can't send extra_body (e.g. constrained SDKs), pass routing
-parameters directly in the model string:
+Когда ваш клиент не умеет отправлять `extra_body`, параметры можно передать
+прямо в строке модели:
 
-```
+```yaml
 model:
   provider: polza
   model: "minimax/minimax-m2.5@provider=DeepInfra&reasoning_effort=high"
 ```
 
-Supported aliases:
+Поддерживаемые алиасы:
 
-| Alias | Equivalent body field |
-|-------|----------------------|
+| Алиас | Эквивалент в body |
+|-------|-------------------|
 | `@provider=<name>` | `provider.only = [name]` |
 | `@reasoning_effort=<level>` | `reasoning.effort = level` |
 | `@allow_fallbacks=<bool>` | `provider.allow_fallbacks = bool` |
 
-Multiple aliases can be combined with ``&``:
+Несколько алиасов через `&`:
 `model@provider=X&reasoning_effort=high&allow_fallbacks=false`
 
-> **Note:** When alias is present, `model.extra_body.provider` is **skipped**
-> to avoid `400` conflict on the Polza side.
+> **Важно:** При наличии alias-формата `model.extra_body.provider`
+> **не передаётся** — чтобы избежать `400` на стороне Polza.
 
-### With Web Search
+### С веб-поиском
 
 ```yaml
 model:
@@ -138,9 +139,9 @@ model:
         max_results: 5
 ```
 
-### With Response Healing
+### С исправлением ответов (Response Healing)
 
-Automatically fixes invalid JSON in model responses:
+Автоматически чинит невалидный JSON в ответах модели:
 
 ```yaml
 model:
@@ -152,13 +153,13 @@ model:
         enabled: true
 ```
 
-### With Reasoning
+### С reasoning
 
 ```yaml
 reasoning_effort: high  # xhigh | high | medium | low | minimal | none
 ```
 
-### With Web Search
+### С веб-поиском
 
 ```yaml
 model:
@@ -168,7 +169,7 @@ model:
         max_results: 5
 ```
 
-Or via `config.yaml`:
+Или через `config.yaml`:
 
 ```yaml
 polza_web_search:
@@ -178,9 +179,9 @@ polza_web_search:
 
 ## WebUI
 
-Polza.ai has a dedicated [Hermes WebUI](https://github.com/nesquena/hermes-webui) with:
+Для Polza.ai есть [Hermes WebUI](https://github.com/nesquena/hermes-webui) с расширением:
 
-- **Balance and cost widget** — floating balance display, daily spending breakdown by model, API key management in browser
-- **Extension gallery** — install in Settings → Extensions
+- **Виджет баланса и расходов** — плавающий баланс, дневная статистика по моделям, управление API-ключом в браузере
+- **Галерея расширений** — установка через Settings → Extensions
 
-See [polza-webui-extensions](https://github.com/akrhin/polza-webui-extensions) for installation and usage.
+Подробнее: [polza-webui-extensions](https://github.com/akrhin/polza-webui-extensions)
