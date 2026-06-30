@@ -101,6 +101,57 @@ Available `provider` fields:
 | `max_price` | `object` | Max price per 1M tokens: `{prompt, completion}` |
 | `allow_fallbacks` | `boolean` | Fall back to other providers on error |
 
+### Alias format (@-syntax)
+
+When your client can't send extra_body (e.g. constrained SDKs), pass routing
+parameters directly in the model string:
+
+```
+model:
+  provider: polza
+  model: "minimax/minimax-m2.5@provider=DeepInfra&reasoning_effort=high"
+```
+
+Supported aliases:
+
+| Alias | Equivalent body field |
+|-------|----------------------|
+| `@provider=<name>` | `provider.only = [name]` |
+| `@reasoning_effort=<level>` | `reasoning.effort = level` |
+| `@allow_fallbacks=<bool>` | `provider.allow_fallbacks = bool` |
+
+Multiple aliases can be combined with ``&``:
+`model@provider=X&reasoning_effort=high&allow_fallbacks=false`
+
+> **Note:** When alias is present, `model.extra_body.provider` is **skipped**
+> to avoid `400` conflict on the Polza side.
+
+### With Web Search
+
+```yaml
+model:
+  provider: polza
+  model: openai/gpt-4o
+  extra_body:
+    plugins:
+      - id: web
+        max_results: 5
+```
+
+### With Response Healing
+
+Automatically fixes invalid JSON in model responses:
+
+```yaml
+model:
+  provider: polza
+  model: openai/gpt-4o
+  extra_body:
+    plugins:
+      - id: response-healing
+        enabled: true
+```
+
 ### With Reasoning
 
 ```yaml

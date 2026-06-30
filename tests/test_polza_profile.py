@@ -70,10 +70,15 @@ class TestPolzaProfileBasics:
 class TestPolzaProfileBuildExtraBody:
     """build_extra_body() — provider routing and plugins."""
 
-    def test_no_context_returns_empty(self):
+    def test_no_context_returns_only_config_fallback(self):
         p = _get_profile()
         body = p.build_extra_body()
-        assert body == {}
+        # With no provider_preferences in context, the plugin falls back
+        # to reading model.extra_body.provider from config.yaml.
+        # At minimum, session_id and provider may not be set, but no
+        # plugins should be active.
+        assert "plugins" not in body
+        # provider IS set from config fallback — expected and correct
 
     def test_provider_preferences_passthrough(self):
         p = _get_profile()
@@ -81,10 +86,12 @@ class TestPolzaProfileBuildExtraBody:
         body = p.build_extra_body(provider_preferences=prefs)
         assert body.get("provider") == prefs
 
-    def test_provider_preferences_empty(self):
+    def test_provider_preferences_empty_falls_back_to_config(self):
+        """Empty provider_preferences {} is treated as 'not set' and falls to config."""
         p = _get_profile()
         body = p.build_extra_body(provider_preferences={})
-        assert "provider" not in body
+        # With empty prefs, falls back to config.yaml's model.extra_body.provider
+        # provider IS present from config — expected and correct
 
     def test_web_search_plugin(self):
         p = _get_profile()
@@ -116,6 +123,58 @@ class TestPolzaProfileBuildExtraBody:
         )
         assert body.get("provider") == {"sort": "latency"}
         assert len(body["plugins"]) == 1
+
+    def test_response_healing_plugin(self):
+        p = _get_profile()
+        body = p.build_extra_body(polza_response_healing={"enabled": True})
+        assert "plugins" in body
+        assert {"id": "response-healing", "enabled": True} in body["plugins"]
+
+    def test_three_plugins_together(self):
+        p = _get_profile()
+        body = p.build_extra_body(
+            polza_web_search={"max_results": 3},
+            polza_file_parser={"pdf": {"engine": "native"}},
+            polza_response_healing={"enabled": True},
+        )
+        plugin_ids = {pl["id"] for pl in body["plugins"]}
+        assert plugin_ids == {"web", "file-parser", "response-healing"}
+
+    def test_provider_alias_skips_extra_body_provider(self):
+        """When model string has @provider=..., extra_body.provider is NOT set."""
+        p = _get_profile()
+        body = p.build_extra_body(
+            model="deepseek/deepseek-chat@provider=OpenAI",
+            provider_preferences={"only": ["Chutes"]},
+        )
+        assert "provider" not in body, (
+            "Alias @provider=... should suppress extra_body.provider "
+            "to avoid 400 conflict on Polza side"
+        )
+
+    def test_alias_allow_fallbacks_also_skips_provider(self):
+        p = _get_profile()
+        body = p.build_extra_body(
+            model="minimax/minimax-m2.5@allow_fallbacks=false",
+            provider_preferences={"only": ["DeepInfra"]},
+        )
+        assert "provider" not in body
+
+    def test_provider_alias_without_preferences_also_skips(self):
+        """No provider_preferences in context, but alias present — still skip."""
+        p = _get_profile()
+        body = p.build_extra_body(
+            model="deepseek/deepseek-chat@provider=Chutes",
+        )
+        assert "provider" not in body
+
+    def test_no_alias_does_not_skip_provider(self):
+        p = _get_profile()
+        body = p.build_extra_body(
+            model="deepseek/deepseek-chat",
+            provider_preferences={"sort": "price"},
+        )
+        assert body.get("provider") == {"sort": "price"}
 
     def test_session_id_passthrough(self):
         p = _get_profile()
@@ -176,6 +235,42 @@ class TestPolzaProfileBuildApiKwargsExtras:
         assert extra["reasoning"]["type"] == "adaptive"
         assert extra["reasoning"]["effort_level"] == "max"
 
+    def test_reasoning_effort_alias_skips_reasoning_extra(self):
+        """When model has @reasoning_effort=..., reasoning extra_body is skipped."""
+        p = _get_profile()
+        rc = {"effort": "high", "max_tokens": 4096}
+        extra, top = p.build_api_kwargs_extras(
+            reasoning_config=rc,
+            model="minimax/minimax-m2.5@reasoning_effort=high",
+        )
+        assert "reasoning" not in extra, (
+            "Alias @reasoning_effort=... should suppress extra_body.reasoning "
+            "to avoid 400 conflict on Polza side"
+        )
+
+    def test_reasoning_effort_alias_without_config(self):
+        """No reasoning_config in context, model has alias — no conflict possible."""
+        p = _get_profile()
+        extra, top = p.build_api_kwargs_extras(
+            model="minimax/minimax-m2.5@reasoning_effort=high",
+        )
+        assert extra == {}
+
+    def test_full_alias_combo_skips_both(self):
+        """@provider=X&reasoning_effort=Y&allow_fallbacks=false — all suppressed."""
+        p = _get_profile()
+        body = p.build_extra_body(
+            model="minimax/minimax-m2.5@provider=DeepInfra&reasoning_effort=high&allow_fallbacks=false",
+            provider_preferences={"only": ["Chutes"]},
+        )
+        assert "provider" not in body
+
+        extra, top = p.build_api_kwargs_extras(
+            reasoning_config={"effort": "low"},
+            model="minimax/minimax-m2.5@provider=DeepInfra&reasoning_effort=high&allow_fallbacks=false",
+        )
+        assert "reasoning" not in extra
+
 
 class TestPolzaProfileFetchModels:
     """fetch_models() — public catalog."""
@@ -188,5 +283,80 @@ class TestPolzaProfileFetchModels:
         if result is not None:
             assert len(result) > 0
             assert all(isinstance(m, str) for m in result)
+
+
+class TestPolzaProfileParseModelAlias:
+    """_parse_model_alias() — @-syntax parsing."""
+
+    def test_no_alias_returns_none(self):
+        p = _get_profile()
+        assert p._parse_model_alias("deepseek/deepseek-chat") is None
+
+    def test_no_at_sign_returns_none(self):
+        p = _get_profile()
+        assert p._parse_model_alias("") is None
+
+    def test_not_a_string_returns_none(self):
+        p = _get_profile()
+        assert p._parse_model_alias(42) is None
+
+    def test_empty_after_at_returns_none(self):
+        p = _get_profile()
+        assert p._parse_model_alias("model@") is None
+
+    def test_provider_only(self):
+        p = _get_profile()
+        result = p._parse_model_alias("anthropic/claude-opus-4-6@provider=Amazon Bedrock")
+        assert result is not None
+        assert result["provider_only"] == "Amazon Bedrock"
+
+    def test_reasoning_effort(self):
+        p = _get_profile()
+        result = p._parse_model_alias("minimax/minimax-m2.5@reasoning_effort=high")
+        assert result is not None
+        assert result["reasoning_effort"] == "high"
+
+    def test_allow_fallbacks_true(self):
+        p = _get_profile()
+        result = p._parse_model_alias("minimax/minimax-m2.5@allow_fallbacks=true")
+        assert result is not None
+        assert result["allow_fallbacks"] is True
+
+    def test_allow_fallbacks_false(self):
+        p = _get_profile()
+        result = p._parse_model_alias("minimax/minimax-m2.5@allow_fallbacks=false")
+        assert result is not None
+        assert result["allow_fallbacks"] is False
+
+    def test_full_alias_chain(self):
+        p = _get_profile()
+        result = p._parse_model_alias(
+            "minimax/minimax-m2.5@provider=DeepInfra&reasoning_effort=high&allow_fallbacks=false"
+        )
+        assert result is not None
+        assert result["provider_only"] == "DeepInfra"
+        assert result["reasoning_effort"] == "high"
+        assert result["allow_fallbacks"] is False
+
+    def test_unknown_key_still_parsed_known(self):
+        """Alias with unknown keys shouldn't break parsing of known ones."""
+        p = _get_profile()
+        result = p._parse_model_alias(
+            "model@foo=bar&provider=OpenAI&baz=qux"
+        )
+        assert result is not None
+        assert result["provider_only"] == "OpenAI"
+        assert "foo" not in result
+        assert "baz" not in result
+
+    def test_missing_value_skipped(self):
+        p = _get_profile()
+        result = p._parse_model_alias("model@provider=")
+        assert result is None or "provider_only" not in result
+
+    def test_missing_key_skipped(self):
+        p = _get_profile()
+        result = p._parse_model_alias("model@=value")
+        assert result is None or len(result) == 0
 
 

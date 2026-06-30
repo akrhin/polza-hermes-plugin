@@ -102,6 +102,57 @@ model:
 | `max_price` | `object` | Макс. цена за 1М токенов: `{prompt, completion}` |
 | `allow_fallbacks` | `boolean` | Fallback на другие провайдеры при ошибке |
 
+### Alias-формат (@-синтаксис)
+
+Когда ваш клиент не умеет отправлять `extra_body`, параметры можно передать
+прямо в строке модели:
+
+```yaml
+model:
+  provider: polza
+  model: "minimax/minimax-m2.5@provider=DeepInfra&reasoning_effort=high"
+```
+
+Поддерживаемые алиасы:
+
+| Алиас | Эквивалент в body |
+|-------|-------------------|
+| `@provider=<name>` | `provider.only = [name]` |
+| `@reasoning_effort=<level>` | `reasoning.effort = level` |
+| `@allow_fallbacks=<bool>` | `provider.allow_fallbacks = bool` |
+
+Несколько алиасов через `&`:
+`model@provider=X&reasoning_effort=high&allow_fallbacks=false`
+
+> **Важно:** При наличии alias-формата `model.extra_body.provider`
+> **не передаётся** — чтобы избежать `400` на стороне Polza.
+
+### С веб-поиском
+
+```yaml
+model:
+  provider: polza
+  model: openai/gpt-4o
+  extra_body:
+    plugins:
+      - id: web
+        max_results: 5
+```
+
+### С исправлением ответов (Response Healing)
+
+Автоматически чинит невалидный JSON в ответах модели:
+
+```yaml
+model:
+  provider: polza
+  model: openai/gpt-4o
+  extra_body:
+    plugins:
+      - id: response-healing
+        enabled: true
+```
+
 ### С reasoning
 
 ```yaml

@@ -31,6 +31,40 @@ tests/
 | Doctor health checks | ✅ |
 | Transport kwargs | ✅ |
 
+### Alias format (@-syntax)
+
+Polza supports passing `provider`, `reasoning_effort`, and `allow_fallbacks` directly
+in the model string via ``@``-syntax:
+
+```
+<model>@provider=<name>&reasoning_effort=<level>&allow_fallbacks=<bool>
+```
+
+**Parsed by**: ``PolzaProfile._parse_model_alias()`` — a static method that
+splits on ``@``, then ``&``, then ``=``, and returns a dict with recognised keys.
+
+**Conflict avoidance**: When an alias is detected in ``build_extra_body()``,
+both ``provider_preferences`` (layer 1) and config fallback (layer 2) are
+**skipped** — otherwise Polza API returns ``400`` for duplicate ``provider``
+or ``reasoning`` fields. Same logic applies in ``build_api_kwargs_extras()``:
+``@reasoning_effort`` suppresses ``extra_body.reasoning``.
+
+**Identity:** ``_ALIAS_KEYS`` — the recognised alias keys are:
+``provider``, ``reasoning_effort``, ``allow_fallbacks``.
+
+### Plugins system
+
+Polza provides server-side plugins via the ``plugins`` array in the request body:
+
+| Plugin ID          | Context key             | Description                                   |
+|--------------------|------------------------|-----------------------------------------------|
+| ``web``            | ``polza_web_search``   | Internet search augmentation                  |
+| ``file-parser``    | ``polza_file_parser``  | PDF/DOCX text extraction with engine selection |
+| ``response-healing`` | ``polza_response_healing`` | Automatic invalid JSON fix in responses    |
+
+Each is activated by passing a dict to the corresponding context key in
+``build_extra_body()``. Multiple plugins can be active simultaneously.
+
 ## Design Decisions
 
 ### Plugin-only: no core edits

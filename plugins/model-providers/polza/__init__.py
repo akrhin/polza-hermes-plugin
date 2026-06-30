@@ -2,7 +2,7 @@
 Polza.ai provider profile for Hermes Agent.
 
 Supports provider routing, reasoning tokens, web search,
-and public model catalog.
+file parser, response healing, and public model catalog.
 """
 
 from __future__ import annotations
@@ -20,6 +20,9 @@ logger = logging.getLogger(__name__)
 class PolzaProfile(ProviderProfile):
     """Polza.ai aggregator — provider routing, reasoning, plugins passthrough."""
 
+    # ── Alias constants ──────────────────────────────────────
+    _ALIAS_KEYS = frozenset({"provider", "reasoning_effort", "allow_fallbacks"})
+
     def fetch_models(
         self,
         *,
@@ -34,6 +37,8 @@ class PolzaProfile(ProviderProfile):
         """
         return super().fetch_models(api_key=None, base_url=base_url, timeout=timeout)
 
+    # ── Public API: called by Hermes transport ────────────────
+
     def build_extra_body(
         self, *, session_id: str | None = None, **context: Any
     ) -> dict[str, Any]:
@@ -43,33 +48,43 @@ class PolzaProfile(ProviderProfile):
           - Provider routing (``provider: {only, ignore, order, sort, ...}``)
           - Web search plugin (``plugins: [{id: "web", ...}]``)
           - File parser plugin (``plugins: [{id: "file-parser", ...}]``)
+          - Response healing plugin (``plugins: [{id: "response-healing", ...}]``)
 
         Provider routing priority:
-          1. ``provider_preferences`` from the Hermes agent context
+          1. Alias format (``model@provider=...``) — parsed from model string
+          2. ``provider_preferences`` from the Hermes agent context
              (set via agent.providers_allowed/ignored/order/provider_sort)
-          2. ``model.extra_body.provider`` from config.yaml (fallback)
-             — allows users to set provider filtering in config.yaml
-               without needing CLI flags or agent-level attrs.
+          3. ``model.extra_body.provider`` from config.yaml (fallback)
+
+        When alias format is active, ``model.extra_body.provider`` and
+        ``provider_preferences`` are *skipped* to avoid 400 conflict with
+        Polza's alias server-side processing.
         """
         body: dict[str, Any] = {}
 
         # ── Session ID ──────────────────────────────────────────
-        # Forwards Hermes session_id to Polza for request correlation.
         if session_id:
             body["session_id"] = session_id
 
+        # ── Alias detection ─────────────────────────────────────
+        # Polza supports model@provider=X&reasoning_effort=Y syntax.
+        # When alias is detected, skip extra_body.provider to avoid
+        # 400 conflict (Polza rejects duplicate provider/reasoning).
+        model = context.get("model", "")
+        alias = self._parse_model_alias(model) if isinstance(model, str) else None
+        has_provider_alias = alias is not None and (
+            "provider_only" in alias or "allow_fallbacks" in alias
+        )
+
         # ── Provider routing ────────────────────────────────────
-        # Priority 1: Hermes agent context (provider_preferences)
-        # Priority 2: model.extra_body.provider from config (fallback)
-        prefs = context.get("provider_preferences")
-        if not prefs:
-            prefs = self._extra_body_provider_from_config()
-        if prefs:
-            body["provider"] = prefs
+        if not has_provider_alias:
+            prefs = context.get("provider_preferences")
+            if not prefs:
+                prefs = self._extra_body_provider_from_config()
+            if prefs:
+                body["provider"] = prefs
 
         # ── Plugins ─────────────────────────────────────────────
-        # Web search:  body["plugins"] = [{"id": "web", "max_results": 5}]
-        # File parser: body["plugins"] = [{"id": "file-parser", "pdf": {"engine": "mistral-ocr"}}]
         plugins: list[dict[str, Any]] = []
 
         web_search = context.get("polza_web_search")
@@ -80,10 +95,87 @@ class PolzaProfile(ProviderProfile):
         if file_parser:
             plugins.append({"id": "file-parser", **file_parser})
 
+        response_healing = context.get("polza_response_healing")
+        if response_healing:
+            plugins.append({"id": "response-healing", **response_healing})
+
         if plugins:
             body["plugins"] = plugins
 
         return body
+
+    def build_api_kwargs_extras(
+        self,
+        *,
+        reasoning_config: dict | None = None,
+        **context: Any,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Polza passes reasoning config directly as extra_body.reasoning.
+
+        The ``reasoning`` object supports:
+          - effort: none | minimal | low | medium | high | xhigh | max
+          - max_tokens: int (hard budget for explicit models)
+          - summary: auto | concise | detailed
+          - type: adaptive (for Claude Opus 4.7+)
+          - effort_level: low | medium | high | max (adaptive models)
+          - enabled: bool
+          - exclude: bool
+
+        When ``model@reasoning_effort=X`` alias is detected, reasoning_config
+        is *skipped* to avoid 400 conflict with Polza's alias processing.
+        """
+        extra_body: dict[str, Any] = {}
+        top_level: dict[str, Any] = {}
+
+        # ── Alias detection ─────────────────────────────────────
+        model = context.get("model", "")
+        alias = self._parse_model_alias(model) if isinstance(model, str) else None
+        has_reasoning_alias = alias is not None and "reasoning_effort" in alias
+
+        if reasoning_config is not None and not has_reasoning_alias:
+            extra_body["reasoning"] = dict(reasoning_config)
+
+        return extra_body, top_level
+
+    # ── Internal helpers ──────────────────────────────────────
+
+    @staticmethod
+    def _parse_model_alias(model: str) -> dict[str, Any] | None:
+        """Parse Polza alias format from the model string.
+
+        Alias format: ``<model>@<key>=<value>&<key>=<value>``
+
+        Supported keys (via Polza docs):
+          - ``provider`` — maps to ``provider.only = [value]``
+          - ``reasoning_effort`` — maps to ``reasoning.effort = value``
+          - ``allow_fallbacks`` — maps to ``provider.allow_fallbacks = boolean``
+
+        Returns a dict with parsed keys, or ``None`` if the model string
+        contains no ``@`` or no recognised alias keys.
+        """
+        if not isinstance(model, str) or "@" not in model:
+            return None
+
+        after_at = model.split("@", 1)[1]
+        if not after_at:
+            return None
+
+        result: dict[str, Any] = {}
+        for pair in after_at.split("&"):
+            if "=" not in pair:
+                continue
+            key, value = pair.split("=", 1)
+            key, value = key.strip(), value.strip()
+            if not key or not value:
+                continue
+            if key == "provider":
+                result["provider_only"] = value
+            elif key == "reasoning_effort":
+                result["reasoning_effort"] = value
+            elif key == "allow_fallbacks":
+                result["allow_fallbacks"] = value.lower() == "true"
+
+        return result if result else None
 
     @staticmethod
     def _extra_body_provider_from_config() -> dict[str, Any] | None:
@@ -115,33 +207,8 @@ class PolzaProfile(ProviderProfile):
             logger.debug("Could not read model.extra_body.provider from config", exc_info=True)
         return None
 
-    def build_api_kwargs_extras(
-        self,
-        *,
-        reasoning_config: dict | None = None,
-        **context: Any,
-    ) -> tuple[dict[str, Any], dict[str, Any]]:
-        """Polza passes reasoning config directly as extra_body.reasoning.
 
-        The ``reasoning`` object supports:
-          - effort: none | minimal | low | medium | high | xhigh | max
-          - max_tokens: int (hard budget for explicit models)
-          - summary: auto | concise | detailed
-          - type: adaptive (for Claude Opus 4.7+)
-          - effort_level: low | medium | high | max (adaptive models)
-          - enabled: bool
-          - exclude: bool
-
-        Polza accepts the full reasoning_config dict as-is from Hermes.
-        """
-        extra_body: dict[str, Any] = {}
-        top_level: dict[str, Any] = {}
-
-        if reasoning_config is not None:
-            extra_body["reasoning"] = dict(reasoning_config)
-
-        return extra_body, top_level
-
+# ── Provider registration ──────────────────────────────────
 
 polza = PolzaProfile(
     name="polza",
