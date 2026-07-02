@@ -18,7 +18,46 @@
 
 ## Installation
 
-### 1. Clone plugin into Hermes
+### Provider (model-provider)
+
+### Balance Plugin (Telegram `/balance` command)
+
+A separate plugin to check balance and spending directly from Telegram:
+
+```yaml
+plugins:
+  enabled:
+    - polza-balance
+```
+
+**Setup:**
+```bash
+ln -sf ~/git/polza-hermes-plugin/plugins/polza-balance ~/.hermes/plugins/polza-balance
+```
+
+**Commands:**
+| Command | Shows |
+|---------|-------|
+| `/balance` | Balance + total spent |
+| `/balance today` | + today's stats (gen, tokens, cache, top-5 models) |
+| `/balance 10` | + last 10 requests |
+| `/balance 20` | + last 20 requests |
+| `/balance today 10` | Everything at once |
+
+Example output:
+```
+📊 Polza AI — 03.07.2026 02:26 MSK
+💰 Баланс: 429.39 ₽ | Потрачено всего: 7823.21 ₽
+
+📅 Сегодня: 545 gen · 83.2M in / 519.1K out · 🗄96% cached · 🧠368.7K thinking · 💰 83.06 ₽
+  Топ-5 моделей:
+    DeepSeek: DeepSeek V4 Flash: 83.06 ₽ (83.2M/519.1K, 545 gen)
+
+🕐 Последние 10 запросов
+  00:00 | DeepSeek V4 Flash | 130.8K/2.4K | 0.11₽ 🗄99% 🧠2.2K | ⏱25.1s
+```
+
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/akrhin/polza-hermes-plugin.git
