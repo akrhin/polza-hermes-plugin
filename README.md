@@ -247,54 +247,18 @@ reasoning_effort: high  # xhigh | high | medium | low | minimal | none
 
 ## Обновление плагина
 
-### 1. Обновите файлы плагина
-
 ```bash
 cd ~/git/polza-hermes-plugin
 git pull origin main
-# Симлинк остаётся — файлы подтянутся автоматически
 ```
 
-Если плагин был скопирован, а не установлен через симлинк — перекопируйте:
+Если плагин скопирован (не симлинк) — перекопируйте:
 
 ```bash
-cp -r ~/git/polza-hermes-plugin/plugins/model-providers/polza ~/.hermes/plugins/model-providers/
+cp -r plugins/model-providers/polza ~/.hermes/plugins/model-providers/
 ```
 
-### 2. Обновите hermes-agent (для поддержки auxiliary-задач)
+После обновления — перезапустите Hermes.
 
-Polza — плагинный провайдер. Основная модель работает сразу, но для **auxiliary-задач** (vision, сжатие истории, генерация заголовков) требуется версия `hermes-agent` с поддержкой плагинных провайдеров.
-
-Проверьте, что у вас коммит, содержащий фикс:
-
-```bash
-git log --oneline -1 | grep "plugin provider fallback"
-```
-
-Если нет — обновите форк:
-
-```bash
-cd ~/git/hermes/hermes-agent
-git pull fork main
-```
-
-> **Что делает фикс:** `resolve_provider_client()` теперь не падает на провайдерах вне жёстко зашитого `PROVIDER_REGISTRY`. Если провайдер не найден в словаре встроенных — проверяется `get_provider_profile()` из плагинной системы. Профиль Polza содержит `base_url`, `env_vars` и `default_aux_model`, так что auxiliary-клиент создаётся корректно.
-
-### 3. Перезапустите Hermes
-
-Для CLI:
-
-```bash
-hermes exit && hermes
-```
-
-Для gateway:
-
-```bash
-systemctl --user restart hermes-gateway
-```
-
-Для WebUI — перезагрузите страницу или перезапустите сервер.
-
-После обновления все вспомогательные задачи (авто-генерация заголовков, сжатие истории, vision) будут работать через Polza, а не падать на `unknown provider`.
+> Плагин регистрируется в `PROVIDER_REGISTRY` автоматически через `register_provider()`. Никаких правок ядра не требуется. Все auxiliary-задачи (vision, сжатие, заголовки) работают сразу после установки плагина.
 

@@ -243,8 +243,6 @@ See [polza-webui-extensions](https://github.com/akrhin/polza-webui-extensions) f
 
 ## Updating the Plugin
 
-### 1. Update plugin files
-
 ```bash
 cd ~/git/polza-hermes-plugin
 git pull origin main
@@ -253,43 +251,10 @@ git pull origin main
 If you copied instead of symlinked, recopy:
 
 ```bash
-cp -r ~/git/polza-hermes-plugin/plugins/model-providers/polza ~/.hermes/plugins/model-providers/
+cp -r plugins/model-providers/polza ~/.hermes/plugins/model-providers/
 ```
 
-### 2. Update hermes-agent (auxiliary task support)
+Restart Hermes after updating.
 
-Polza is a plugin-based provider. The main model works immediately, but **auxiliary tasks** (vision, history compression, title generation) require a version of `hermes-agent` that supports plugin-based providers via `ProviderProfile` fallback in `resolve_provider_client()`.
-
-Check your version:
-
-```bash
-cd ~/git/hermes/hermes-agent
-git log --oneline -1 | grep "plugin provider fallback"
-```
-
-If no match, update your fork:
-
-```bash
-git pull fork main
-```
-
-> **What the fix does:** `resolve_provider_client()` no longer fails on providers absent from the hardcoded `PROVIDER_REGISTRY`. When a provider isn't in the built-in dictionary, it falls back to `get_provider_profile()` from the plugin system. The Polza profile supplies `base_url`, `env_vars`, and `default_aux_model`, so the auxiliary client is created correctly.
-
-### 3. Restart Hermes
-
-CLI:
-
-```bash
-hermes exit && hermes
-```
-
-Gateway (systemd):
-
-```bash
-systemctl --user restart hermes-gateway
-```
-
-WebUI — reload page or restart the server.
-
-After updating, all auxiliary tasks (auto-titling, history compression, vision) will use Polza instead of failing with `unknown provider`.
+> The plugin registers itself into `PROVIDER_REGISTRY` via `register_provider()`. No core edits needed. All auxiliary tasks (vision, compression, titling) work immediately after plugin installation — the auto-extend mechanism in `hermes_cli/auth.py` (lines 440–472) picks up any api-key provider plugin automatically.
 
