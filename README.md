@@ -19,6 +19,45 @@
 
 ## Установка
 
+### Провайдер (model-provider)
+
+### Balance Plugin (Telegram команда `/balance`)
+
+Отдельный плагин для проверки баланса и трат прямо из Telegram:
+
+```yaml
+plugins:
+  enabled:
+    - polza-balance
+```
+
+**Установка:**
+```bash
+ln -sf ~/git/polza-hermes-plugin/plugins/polza-balance ~/.hermes/plugins/polza-balance
+```
+
+**Команды:**
+| Команда | Что показывает |
+|---------|----------------|
+| `/balance` | Баланс + всего потрачено |
+| `/balance today` | + статистика за сегодня (gen, токены, кэш, top-5 моделей) |
+| `/balance 10` | + последние 10 запросов |
+| `/balance 20` | + последние 20 запросов |
+| `/balance today 10` | Всё сразу |
+
+Пример вывода:
+```
+📊 Polza AI — 03.07.2026 02:26 MSK
+💰 Баланс: 429.39 ₽ | Потрачено всего: 7823.21 ₽
+
+📅 Сегодня: 545 gen · 83.2M in / 519.1K out · 🗄96% cached · 🧠368.7K thinking · 💰 83.06 ₽
+  Топ-5 моделей:
+    DeepSeek: DeepSeek V4 Flash: 83.06 ₽ (83.2M/519.1K, 545 gen)
+
+🕐 Последние 10 запросов
+  00:00 | DeepSeek V4 Flash | 130.8K/2.4K | 0.11₽ 🗄99% 🧠2.2K | ⏱25.1s
+```
+
 ### 1. Клонируйте репозиторий
 
 ```bash
