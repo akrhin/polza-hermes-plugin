@@ -53,7 +53,7 @@ def _handle_balance(raw_args: str):
 
     out = []
     out.append(f"📊 <b>Polza AI — {now_str} MSK</b>")
-    out.append(f"���� Баланс: <b>{amount:.2f} ₽</b> | Всего потрачено: {spent:.2f} ₽")
+    out.append(f"💰 Баланс: <b>{amount:.2f} ₽</b> | Всего потрачено: {spent:.2f} ₽")
 
     if amount < 100:
         out.append(f"⚠️ Баланс ниже 100 ₽!")
