@@ -55,8 +55,8 @@ def _handle_balance(raw_args: str) -> str:
     now_str = now.strftime("%d.%m.%Y %H:%M")
 
     out = []
-    out.append(f"📊 <b>Polza AI — {now_str} MSK</b>")
-    out.append(f"💰 Баланс: <b>{amount:.2f} ₽</b> | Всего потрачено: {spent:.2f} ₽")
+    out.append(f"📊 **Polza AI — {now_str} MSK**")
+    out.append(f"💰 Баланс: **{amount:.2f} ₽** | Всего потрачено: {spent:.2f} ₽")
 
     if amount < 100:
         out.append(f"⚠️ Баланс ниже 100 ₽!")
@@ -131,7 +131,7 @@ def _handle_balance(raw_args: str) -> str:
         )
         out.append("")
         out.append(
-            f"📅 <b>Сегодня</b>: {total_gen} gen · "
+            f"📅 **Сегодня**: {total_gen} gen · "
             f"{_fmt_num(total_prompt)} in / {_fmt_num(total_completion)} out · "
             f"🗄{cache_pct}% cached · 🧠{_fmt_num(total_reasoning)} thinking · "
             f"💰 {total_cost:.2f} ₽"
@@ -140,7 +140,7 @@ def _handle_balance(raw_args: str) -> str:
             by_model.items(), key=lambda x: x[1]["cost"], reverse=True
         )[:5]
         if top5:
-            out.append(f"<b>Топ-5 моделей:</b>")
+            out.append(f"**Топ-5 моделей:**")
             for m, s in top5:
                 out.append(
                     f"  {m}: {s['cost']:.2f} ₽ "
@@ -164,7 +164,7 @@ def _handle_balance(raw_args: str) -> str:
                 recent_items = []
 
         out.append("")
-        out.append(f"🕐 <b>Последние {recent_n} запросов</b>")
+        out.append(f"🕐 **Последние {recent_n} запросов**")
         for item in recent_items:
             cost = float(item.get("cost", 0) or 0)
             usage = item.get("usage", {}) or {}
