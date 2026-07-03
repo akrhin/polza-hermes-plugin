@@ -73,8 +73,8 @@ def _handle_balance(raw_args: str) -> str:
 
     lines = []
     # ── Header ──
-    lines.append(f"📊 **Polza AI — {now_str} MSK**")
-    lines.append(f"💰 Баланс: **{amount:.2f} ₽** | Всего потрачено: {spent:.2f} ₽")
+    lines.append(f"📊 <b>Polza AI — {now_str} MSK</b>")
+    lines.append(f"💰 Баланс: <b>{amount:.2f} ₽</b> | Всего потрачено: {spent:.2f} ₽")
     if amount < 100:
         lines.append(f"⚠️ Баланс ниже 100 ₽!")
 
@@ -145,7 +145,7 @@ def _handle_balance(raw_args: str) -> str:
 
         lines.append("")
         lines.append(
-            f"📅 **Сегодня**: {total_gen} gen · "
+            f"📅 <b>Сегодня</b>: {total_gen} gen · "
             f"{_fmt_num(total_prompt)} in / {_fmt_num(total_completion)} out · "
             f"🗄{cache_pct}% cached · 🧠{_fmt_num(total_reasoning)} thinking · "
             f"💰 {total_cost:.2f} ₽"
@@ -155,7 +155,7 @@ def _handle_balance(raw_args: str) -> str:
             by_provider_model.items(), key=lambda x: x[1]["cost"], reverse=True
         )[:5]
         if top5:
-            lines.append(f"**Топ-5:**")
+            lines.append(f"<b>Топ-5:</b>")
             for (provider, model_name), s in top5:
                 tag = f"[{provider}] " if provider else ""
                 lines.append(
@@ -183,7 +183,10 @@ def _handle_balance(raw_args: str) -> str:
             recent_items = []
 
         lines.append("")
-        lines.append(f"🕐 **Последние {recent_n} запросов:**")
+        lines.append(f"🕐 <b>Последние {recent_n} запросов:</b>")
+        lines.append("<pre>")
+        lines.append(f"{'Время':6s} | {'Модель':30s} | {'In/Out':14s} | {'₽':24s} | {'Длит':>6s}")
+        lines.append(f"{'------':6s} | {'------------------------------':30s} | {'--------------':14s} | {'------------------------':24s} | {'------':>6s}")
         for item in recent_items:
             cost = float(item.get("cost", 0) or 0)
             usage = item.get("usage", {}) or {}
@@ -197,21 +200,23 @@ def _handle_balance(raw_args: str) -> str:
             t = _to_msk(item.get("createdAt", ""))
             raw_model = item.get("modelDisplayName", item.get("model", "unknown"))
             provider, model_name = _split_provider(raw_model)
+            full_name = f"[{provider}] {model_name}" if provider else model_name
             gen_ms = item.get("generationTimeMs", 0) or 0
             time_str = f"{gen_ms/1000:.1f}s" if gen_ms >= 1000 else f"{gen_ms}ms"
 
-            tag = f"[{provider}] " if provider else ""
+            inout = f"{_fmt_num(pt)}/{_fmt_num(ct)}"
             extra = ""
             if cached > 0 and pt > 0:
                 extra += f" 🗄{int(cached/pt*100)}%"
             if reasoning > 0:
                 extra += f" 🧠{_fmt_num(reasoning)}"
+            cost_str = f"{cost:.2f}"
 
             lines.append(
-                f" {t} {tag}{model_name} · "
-                f"{_fmt_num(pt)}/{_fmt_num(ct)} "
-                f"💰{cost:.2f}₽{extra} ⏱{time_str}"
+                f"{t:>6s} | {full_name:30s} | {inout:>13s} | "
+                f"{cost_str:>7s}{extra} | {time_str:>6s}"
             )
+        lines.append("</pre>")
 
     return "\n".join(lines)
 
