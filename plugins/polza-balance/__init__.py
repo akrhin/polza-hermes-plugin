@@ -29,9 +29,10 @@ def _handle_balance(raw_args: str) -> str:
     """Handler for /balance — bare command shows everything (today + last 10)"""
     args = raw_args.strip().lower()
     no_args = not args
+    only_balance = args == "only"
 
-    # По умолчанию — всё
-    show_today = no_args or "today" in args or "сегодня" in args
+    # По умолчанию — всё. Если only — только баланс.
+    show_today = (no_args or "today" in args or "сегодня" in args) and not only_balance
     recent_n = 10 if no_args else 0
     for word in args.split():
         try:
