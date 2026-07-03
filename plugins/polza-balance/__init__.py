@@ -165,6 +165,8 @@ def _handle_balance(raw_args: str) -> str:
 
         out.append("")
         out.append(f"🕐 **Последние {recent_n} запросов**")
+        out.append("`Время  | Модель           | in/out     | ₽            | ⏱`")
+        out.append("`-------+------------------+------------+--------------+--------`")
         for item in recent_items:
             cost = float(item.get("cost", 0) or 0)
             usage = item.get("usage", {}) or {}
@@ -174,29 +176,29 @@ def _handle_balance(raw_args: str) -> str:
             ctd = usage.get("completion_tokens_details", {}) or {}
             cached = ptd.get("cached_tokens", 0) or 0
             reasoning = ctd.get("reasoning_tokens", 0) or 0
-            created = item.get("createdAt", "")
-            if created:
+            raw_created = item.get("createdAt", "")
+            t = "??:??"
+            if raw_created:
                 try:
-                    dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
-                    created = dt.astimezone(msk).strftime("%H:%M")
+                    dt = datetime.fromisoformat(raw_created.replace("Z", "+00:00"))
+                    t = dt.astimezone(msk).strftime("%H:%M")
                 except Exception:
                     pass
             model = item.get("modelDisplayName", item.get("model", "unknown"))
+            short_model = model.split(":")[-1].strip() if ":" in model else model
             gen_ms = item.get("generationTimeMs", 0) or 0
             time_str = (
                 f"{gen_ms/1000:.1f}s" if gen_ms >= 1000 else f"{gen_ms}ms"
             )
-            cache_str = (
-                f" 🗄{int(cached/pt*100)}%"
-                if pt > 0 and cached > 0
-                else ""
-            )
-            rsn_str = (
-                f" 🧠{_fmt_num(reasoning)}" if reasoning > 0 else ""
-            )
+            extra = ""
+            if cached > 0 and pt > 0:
+                extra += f" 🗄{int(cached/pt*100)}%"
+            if reasoning > 0:
+                extra += f" 🧠{_fmt_num(reasoning)}"
             out.append(
-                f"  {created} | {model} | {_fmt_num(pt)}/{_fmt_num(ct)} "
-                f"| {cost:.2f}₽{cache_str}{rsn_str} | ⏱{time_str}"
+                f"`{t} | {short_model[:16]:16s} | "
+                f"{_fmt_num(pt):>7s}/{_fmt_num(ct):<7s} | "
+                f"{cost:>5.2f}₽{extra} | {time_str:>6s}`"
             )
 
     return "\n".join(out)
