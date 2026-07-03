@@ -63,7 +63,7 @@ def _handle_balance(raw_args: str) -> str:
     try:
         bal = _fetch_json(f"{API_BASE}/balance")
     except Exception as e:
-        return f"❌ Ошибка баланса: {e}"
+        return f"Ошибка баланса: {e}"
 
     amount = float(bal.get("amount", 0) or 0)
     spent = float(bal.get("spentAmount", 0) or 0)
@@ -72,9 +72,8 @@ def _handle_balance(raw_args: str) -> str:
     now_str = now.strftime("%d.%m.%Y %H:%M")
 
     lines = []
-    # ── Header ──
-    lines.append(f"📊 <b>Polza AI — {now_str} MSK</b>")
-    lines.append(f"💰 Баланс: <b>{amount:.2f} ₽</b> | Всего потрачено: {spent:.2f} ₽")
+    lines.append(f"📊 Polza AI — {now_str} MSK")
+    lines.append(f"💰 Баланс: {amount:.2f} ₽ | Всего потрачено: {spent:.2f} ₽")
     if amount < 100:
         lines.append(f"⚠️ Баланс ниже 100 ₽!")
 
@@ -145,17 +144,17 @@ def _handle_balance(raw_args: str) -> str:
 
         lines.append("")
         lines.append(
-            f"📅 <b>Сегодня</b>: {total_gen} gen · "
-            f"{_fmt_num(total_prompt)} in / {_fmt_num(total_completion)} out · "
-            f"🗄{cache_pct}% cached · 🧠{_fmt_num(total_reasoning)} thinking · "
-            f"💰 {total_cost:.2f} ₽"
+            f"📅 Сегодня: {total_gen} gen — "
+            f"{_fmt_num(total_prompt)} in / {_fmt_num(total_completion)} out — "
+            f"c{cache_pct}% cached — r{_fmt_num(total_reasoning)} thinking — "
+            f"{total_cost:.2f} ₽"
         )
 
         top5 = sorted(
             by_provider_model.items(), key=lambda x: x[1]["cost"], reverse=True
         )[:5]
         if top5:
-            lines.append(f"<b>Топ-5:</b>")
+            lines.append("Топ-5:")
             for (provider, model_name), s in top5:
                 tag = f"[{provider}] " if provider else ""
                 lines.append(
@@ -166,7 +165,6 @@ def _handle_balance(raw_args: str) -> str:
     # ── Recent N ──
     if recent_n > 0:
         if all_items:
-            # all_items is newest-first; take the first N = truly newest
             recent_items = all_items[:recent_n]
         else:
             try:
@@ -183,10 +181,10 @@ def _handle_balance(raw_args: str) -> str:
             recent_items = []
 
         lines.append("")
-        lines.append(f"🕐 <b>Последние {recent_n} запросов:</b>")
+        lines.append(f"Последние {recent_n} запросов:")
         lines.append("<pre>")
-        lines.append(f"{'Время':6s} | {'Модель':30s} | {'In/Out':14s} | {'₽':24s} | {'Длит':>6s}")
-        lines.append(f"{'------':6s} | {'------------------------------':30s} | {'--------------':14s} | {'------------------------':24s} | {'------':>6s}")
+        lines.append(f"{'Время':>5s} | {'Модель':28s} | {'In/Out':13s} | {'Цена':>20s} | {'Длит':>6s}")
+        lines.append(f"{'-----':>5s} | {'----------------------------':28s} | {'-------------':13s} | {'--------------------':20s} | {'------':>6s}")
         for item in recent_items:
             cost = float(item.get("cost", 0) or 0)
             usage = item.get("usage", {}) or {}
@@ -200,21 +198,20 @@ def _handle_balance(raw_args: str) -> str:
             t = _to_msk(item.get("createdAt", ""))
             raw_model = item.get("modelDisplayName", item.get("model", "unknown"))
             provider, model_name = _split_provider(raw_model)
-            full_name = f"[{provider}] {model_name}" if provider else model_name
+            name = f"[{provider}] {model_name}"[:28]
             gen_ms = item.get("generationTimeMs", 0) or 0
             time_str = f"{gen_ms/1000:.1f}s" if gen_ms >= 1000 else f"{gen_ms}ms"
 
             inout = f"{_fmt_num(pt)}/{_fmt_num(ct)}"
             extra = ""
             if cached > 0 and pt > 0:
-                extra += f" 🗄{int(cached/pt*100)}%"
+                extra += f" c{int(cached/pt*100)}%"
             if reasoning > 0:
-                extra += f" 🧠{_fmt_num(reasoning)}"
-            cost_str = f"{cost:.2f}"
+                extra += f" r{_fmt_num(reasoning)}"
+            cost_str = f"{cost:.2f}{extra}"
 
             lines.append(
-                f"{t:>6s} | {full_name:30s} | {inout:>13s} | "
-                f"{cost_str:>7s}{extra} | {time_str:>6s}"
+                f"{t:>5s} | {name:28s} | {inout:>13s} | {cost_str:>20s} | {time_str:>6s}"
             )
         lines.append("</pre>")
 
