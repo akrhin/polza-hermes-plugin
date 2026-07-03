@@ -2,8 +2,6 @@ name: polza-balance
 version: 1.0.0
 description: "Check Polza.ai balance — /balance, /balance today, /balance 10"
 author: sintez
-provides_tools: []
-provides_hooks: []
 requires_env:
   - name: POLZA_API_KEY
     description: "Polza.ai API key"

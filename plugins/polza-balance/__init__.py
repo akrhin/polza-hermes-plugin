@@ -25,12 +25,14 @@ def _fmt_num(n: int) -> str:
     return str(n)
 
 
-def _handle_balance(raw_args: str):
-    """Handler for /balance — optional args: today, 10, 20"""
+def _handle_balance(raw_args: str) -> str:
+    """Handler for /balance — bare command shows everything (today + last 10)"""
     args = raw_args.strip().lower()
+    no_args = not args
 
-    show_today = "today" in args or "сегодня" in args
-    recent_n = 0
+    # По умолчанию — всё
+    show_today = no_args or "today" in args or "сегодня" in args
+    recent_n = 10 if no_args else 0
     for word in args.split():
         try:
             n = int(word)
@@ -58,7 +60,8 @@ def _handle_balance(raw_args: str):
     if amount < 100:
         out.append(f"⚠️ Баланс ниже 100 ₽!")
 
-    # Today stats
+    # Today stats + collect items for recent (shared fetch)
+    all_items = []
     if show_today:
         today_start = datetime(now.year, now.month, now.day, tzinfo=msk)
         date_from = today_start.astimezone(timezone.utc).strftime(
@@ -143,21 +146,25 @@ def _handle_balance(raw_args: str):
                     f"({_fmt_num(s['prompt'])}/{_fmt_num(s['completion'])}, {s['gen']} gen)"
                 )
 
-    # Recent N
+    # Recent N (reuse all_items from today fetch if available)
     if recent_n > 0:
-        try:
-            data = _fetch_json(
-                f"{API_BASE}/history/generations"
-                f"?page=1&limit={recent_n}"
-                f"&sortBy=createdAt&sortOrder=desc"
-            )
-            items = data.get("items", [])[:recent_n]
-        except Exception as e:
-            items = []
+        if all_items:
+            recent_items = all_items[-recent_n:]
+            recent_items.reverse()
+        else:
+            try:
+                data = _fetch_json(
+                    f"{API_BASE}/history/generations"
+                    f"?page=1&limit={recent_n}"
+                    f"&sortBy=createdAt&sortOrder=desc"
+                )
+                recent_items = data.get("items", [])[:recent_n]
+            except Exception as e:
+                recent_items = []
 
         out.append("")
         out.append(f"🕐 <b>Последние {recent_n} запросов</b>")
-        for item in items:
+        for item in recent_items:
             cost = float(item.get("cost", 0) or 0)
             usage = item.get("usage", {}) or {}
             pt = usage.get("prompt_tokens", 0) or 0
