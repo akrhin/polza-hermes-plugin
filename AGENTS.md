@@ -1,8 +1,33 @@
 # AGENTS.md — шпаргалка для AI-ассистентов
 
 ## Репозиторий: polza-hermes-plugin
+## Деплой
 
-Два Hermes-плагина в одном репозитории:
+Оба плагина прилинкованы симлинками:
+
+```bash
+ln -sf ~/git/polza-hermes-plugin/plugins/model-providers/polza ~/.hermes/plugins/model-providers/polza
+ln -sf ~/git/polza-hermes-plugin/plugins/polza-balance ~/.hermes/plugins/polza-balance
+```
+
+В `~/.hermes/config.yaml`:
+```yaml
+plugins:
+  enabled:
+    - polza-provider
+    - polza-balance
+```
+
+**Polza Provider** — основной LLM-провайдер для Hermes. Именно через него идут все запросы к DeepSeek V4 Flash и другим моделям.
+
+**Polza Balance** — команда `/balance` в Telegram (с правами администратора чата).
+
+## Связанные проекты
+
+- **polza-webui-extensions** — [akrhin/polza-webui-extensions](https://github.com/akrhin/polza-webui-extensions) — UI-расширения для Hermes WebUI
+- **polza-hermes-plugin** (этот репозиторий) — провайдер + баланс
+
+## Два Hermes-плагина в одном репозитории:
 
 | Плагин | Путь | Что делает |
 |--------|------|------------|
