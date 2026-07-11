@@ -1,0 +1,29 @@
+---
+description: Per-step development log — records every atomic change, reason, and outcome during active development.
+globs: []
+---
+
+# Each-Step Development Log
+
+> **Purpose:** Track every atomic change made to this repo during active development sessions. This is the granular audit trail.
+
+## Instructions
+
+- Each entry records **one atomic change**: a single file edit, a command run, a test executed, a decision made.
+- Format: `YYYY-MM-DD HH:MM MSK | <action> — <file-or-component> | <reason> | <outcome/follow-up>`
+- Leave the raw log; do not squash entries into summaries here (summaries go in `significant-changes-summary.mdc`).
+- If a step failed, note the error and the fix attempted.
+
+## Log Convention
+
+```
+YYYY-MM-DD | <type> | <component> | <detail>
+```
+
+Types: `EDIT`, `RUN`, `TEST`, `INSTALL`, `FIX`, `REFACTOR`, `DOC`, `CONFIG`, `DECISION`, `REVERT`.
+
+## Active Session Log
+
+| Timestamp | Type | Component | Detail | Outcome |
+|-----------|------|-----------|--------|---------|
+| | | | | |

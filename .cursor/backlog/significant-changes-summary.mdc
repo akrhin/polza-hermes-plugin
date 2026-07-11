@@ -1,0 +1,36 @@
+---
+description: High-level changelog of significant architectural, functional, or behavioral changes — the "why" behind each milestone.
+globs: []
+---
+
+# Significant Changes Summary
+
+> **Purpose:** Distilled record of meaningful changes — architecture decisions, new features, breaking changes, and resolved issues. This is the high-level story of the project's evolution.
+
+## Instructions
+
+- One entry per **meaningful milestone**: new feature, bug fix, refactor, config change, dependency update, or decision.
+- Format: `YYYY-MM-DD | <type> | <scope> | <summary>`
+- Focus on **what changed and why**, not every keystroke (that's what `each-step-log.mdc` is for).
+- Mark breaking changes with `[BREAKING]` prefix.
+- Link to the relevant commit hash when available.
+
+## Type Legend
+
+| Type | Meaning |
+|------|---------|
+| `FEAT` | New feature or capability |
+| `FIX` | Bug fix |
+| `REFACTOR` | Code restructuring, no behavior change |
+| `CONFIG` | Configuration change |
+| `DEPS` | Dependency update |
+| `DOCS` | Documentation |
+| `PERF` | Performance improvement |
+| `BREAKING` | Backward-incompatible change (prefix) |
+| `OPS` | Operational / deployment / CI change |
+
+## Milestones
+
+| Date | Type | Scope | Summary | Commit |
+|------|------|-------|---------|--------|
+| | | | | |
