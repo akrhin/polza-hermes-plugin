@@ -21,6 +21,39 @@
 
 ### Провайдер (model-provider)
 
+---
+
+### Image Gen Plugin (генерация изображений)
+
+Плагин для генерации изображений через Polza.ai. Использует OpenAI-совместимый эндпоинт `/v2/images/generations` — стандартный API, а не чат-комплейшнс с модальностями.
+
+**Установка:**
+```bash
+ln -sf ~/git/polza-hermes-plugin/plugins/image_gen ~/.hermes/plugins/image_gen
+```
+
+**Конфигурация:**
+```yaml
+image_gen:
+  provider: polza
+  polza:
+    model: yandex/yandex-art
+
+plugins:
+  enabled:
+    - image_gen/polza
+```
+
+**Включение тулы на платформе:** Чтобы модель могла вызывать `image_generate`, убедись что в активном toolsets есть эта тула:
+- **CLI:** `toolsets: [hermes-cli]` — уже содержит `image_generate` по умолчанию
+- **Telegram:** запусти `hermes tools` → выбери Image Generation → включи Polza. Либо через HTTP API: открой `hermes tools` веб-интерфейс и включи `image_gen` инструмент
+
+**Модели по умолчанию:** `yandex/yandex-art` (2.91 ₽/image). Fallback: `seedream/5-pro-text-to-image`.
+
+**Важно:** Text-to-image only. Image-to-image / editing не поддерживается.
+
+---
+
 ### Balance Plugin (Telegram команда `/balance`)
 
 Отдельный плагин для проверки баланса и трат прямо из Telegram:

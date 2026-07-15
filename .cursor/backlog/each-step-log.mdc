@@ -26,4 +26,18 @@ Types: `EDIT`, `RUN`, `TEST`, `INSTALL`, `FIX`, `REFACTOR`, `DOC`, `CONFIG`, `DE
 
 | Timestamp | Type | Component | Detail | Outcome |
 |-----------|------|-----------|--------|---------|
-| | | | | |
+| 2026-07-15 00:25 MSK | DECISION | plugins/image_gen/polza | Создание image gen плагина для Polza через OpenRouterCompatImageProvider | Начато |
+| 2026-07-15 00:25 MSK | DOC | .cursor/backlog | Документация прочитана — AGENTS.md, ARCHITECTURE.md, two backlog files | Всё чисто, пустые логов |
+| 2026-07-15 00:26 MSK | CREATE | plugins/image_gen/polza/plugin.yaml | Манифест: kind=backend, requires_env=POLZA_API_KEY | ✅ |
+| 2026-07-15 00:26 MSK | CREATE | plugins/image_gen/polza/__init__.py | Плагин: импортирует OpenRouterCompatImageProvider, runtime_name=polza | ✅ |
+| 2026-07-15 00:27 MSK | DOC | AGENTS.md | Добавлен раздел про Polza Image Gen — описание, модели, структура | ✅ |
+| 2026-07-15 00:27 MSK | DOC | ARCHITECTURE.md | Добавлена секция Image generation via Polza — как резолвятся credentials | ✅ |
+| 2026-07-15 00:28 MSK | INSTALL | ~/.hermes/plugins/image_gen/polza | Симлинк + image_gen/polza в config.yaml | ✅ |
+| 2026-07-15 00:28 MSK | TEST | image_gen/polza | resolve_runtime_provider(polza) — OK. Import — OK. Available=True | ✅ |
+| 2026-07-15 00:29 MSK | REFACTOR | image_gen/polza/__init__.py | Создан PolzaImageProvider(OpenRouterCompatImageProvider) с cheap default models | ✅ |
+|| 2026-07-15 00:29 MSK | DOC | AGENTS.md | Обновлён список моделей — tongyi-mai/z-image 1.40р, gemini-2.5-flash-image 2.90р | ✅ |
+|| 2026-07-15 15:00 MSK | FIX | image_gen/polza/__init__.py | Полная переработка плагина: убрано наследование от OpenRouterCompatImageProvider. PolzaImageProvider теперь наследует ImageGenProvider напрямую и вызывает /v2/images/generations. | ✅ |
+|| 2026-07-15 15:05 MSK | TEST | image_gen/polza | Проверка через execute_code — yandex/yandex-art работает, возвращает изображение. | ✅ |
+|| 2026-07-15 15:10 MSK | CONFIG | ~/.hermes/config.yaml | Включён image_gen в Telegram toolsets (через hermes tools). | ✅ |
+|| 2026-07-15 15:12 MSK | TEST | image_generate tool | image_generate вызывается напрямую из моего инструментария — работает через Polza. | ✅ |
+|| 2026-07-15 15:15 MSK | DOC | Все файлы | Обновлены: README.md, README_EN.md, AGENTS.md, ARCHITECTURE.md, plugin.yaml, significant-changes-summary.mdc, each-step-log.mdc | ✅ |

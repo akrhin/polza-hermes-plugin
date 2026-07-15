@@ -1,0 +1,7 @@
+name: polza
+version: 1.0.1
+description: "Polza.ai image generation backend via /v2/images/generations (OpenAI-compatible). Text-to-image only. Uses POLZA_API_KEY."
+author: akrhin
+kind: backend
+requires_env:
+  - POLZA_API_KEY

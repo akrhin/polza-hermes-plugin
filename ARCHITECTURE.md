@@ -82,6 +82,22 @@ per-request via agent context — identical pattern to the provider routing.
 Hermes auto-discovers model-provider plugins from `~/.hermes/plugins/model-providers/`.
 The plugin declares a `ProviderProfile` — no core files are modified.
 
+### Image generation via Polza
+
+`plugins/image_gen/polza/` добавляет бэкенд генерации изображений через Polza.ai. В отличие от штатных бэкендов (OpenRouter, xAI), Polza использует **OpenAI-совместимый `/v2/images/generations`**, а не `/chat/completions` с модальностями:
+
+```
+image_gen/polza/__init__.py              # PolzaImageProvider(ImageGenProvider)
+  └── generate()                         # POST /v2/images/generations → download ephemeral URL
+        └── resolve_runtime_provider("polza") → Polza credentials
+```
+
+**Почему не OpenRouterCompatImageProvider:** Polza не поддерживает протокол `/chat/completions` с `modalities: ["image"]`. Её image-модели работают только через стандартный images API. Наследование от `OpenRouterCompatImageProvider` давало `400 BAD_REQUEST` или пустые ответы. Переписан как самостоятельный `ImageGenProvider` с прямой отправкой на `/v2/images/generations`.
+
+**Модели по умолчанию:** `yandex/yandex-art` (2.91 RUB/image), fallback: `seedream/5-pro-text-to-image`.
+
+**Ограничение:** Text-to-image only. Image-to-image / editing не поддерживается.
+
 ### Provider routing
 
 **Use `model.extra_body.provider` in `config.yaml`** — works identically in CLI,

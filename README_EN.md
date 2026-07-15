@@ -22,6 +22,39 @@
 
 ### Balance Plugin (Telegram `/balance` command)
 
+---
+
+### Image Gen Plugin (image generation)
+
+A plugin for image generation via Polza.ai. Uses the OpenAI-compatible `/v2/images/generations` endpoint — standard API, not chat-completions-with-modalities.
+
+**Setup:**
+```bash
+ln -sf ~/git/polza-hermes-plugin/plugins/image_gen ~/.hermes/plugins/image_gen
+```
+
+**Configuration:**
+```yaml
+image_gen:
+  provider: polza
+  polza:
+    model: yandex/yandex-art
+
+plugins:
+  enabled:
+    - image_gen/polza
+```
+
+**Enabling the tool on your platform:** For the model to call `image_generate`, the tool must be in the active toolset:
+- **CLI:** `toolsets: [hermes-cli]` — already includes `image_generate`
+- **Telegram:** run `hermes tools` → pick Image Generation → enable Polza
+
+**Default models:** `yandex/yandex-art` (2.91 RUB/image). Fallback: `seedream/5-pro-text-to-image`.
+
+**Note:** Text-to-image only. Image-to-image / editing is not supported.
+
+---
+
 A separate plugin to check balance and spending directly from Telegram:
 
 ```yaml
