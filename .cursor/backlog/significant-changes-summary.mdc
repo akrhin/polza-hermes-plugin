@@ -35,3 +35,4 @@ globs: []
 |------|------|-------|---------|--------|
 || 2026-07-15 | FEAT | image_gen/polza | Добавлен плагин генерации изображений через Polza.ai. Использует OpenRouterCompatImageProvider с runtime_name=polza. Credentials резолвятся через resolve_runtime_provider(polza) — тот же механизм, что и у model provider. | — |
 || 2026-07-15 | REFACTOR | image_gen/polza | **Полная переработка** — вместо OpenRouterCompatImageProvider (/chat/completions с modalities) теперь прямой PolzaImageProvider(ImageGenProvider) через /v2/images/generations. Polza не поддерживает чат-протокол для image. Модель по умолчанию: yandex/yandex-art (2.91 ₽). | — |
+|| 2026-07-15 | DOCS | README/AGENTS | Документация установки дополнена: обязательная настройка platform_toolsets для включения тулы image_generate на платформе (CLI, Telegram). | — |

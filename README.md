@@ -19,44 +19,61 @@
 
 ## Установка
 
-### Провайдер (model-provider)
+### 1. Клонируйте репозиторий
 
----
-
-### Image Gen Plugin (генерация изображений)
-
-Плагин для генерации изображений через Polza.ai. Использует OpenAI-совместимый эндпоинт `/v2/images/generations` — стандартный API, а не чат-комплейшнс с модальностями.
-
-**Установка:**
 ```bash
-ln -sf ~/git/polza-hermes-plugin/plugins/image_gen ~/.hermes/plugins/image_gen
+git clone https://github.com/akrhin/polza-hermes-plugin.git
 ```
 
-**Конфигурация:**
+### 2. Model Provider (основной LLM-провайдер)
+
+Подключает Polza.ai как first-class провайдер для всех чат-запросов.
+
+```bash
+mkdir -p ~/.hermes/plugins/model-providers
+ln -sf "$(pwd)/polza-hermes-plugin/plugins/model-providers/polza" \
+       ~/.hermes/plugins/model-providers/polza
+```
+
+Или скопируйте `plugins/model-providers/polza/` в `~/.hermes/plugins/model-providers/`.
+
+### 3. Добавьте API-ключ
+
+**Вариант А — переменная окружения** (рекомендуется для одного ключа):
+
+```bash
+echo 'POLZA_API_KEY=pza_ключ' >> ~/.hermes/.env
+```
+
+**Вариант Б — Credential pool** (несколько ключей с ротацией):
+
+```bash
+hermes auth add polza --type api-key --api-key pza_ключ1
+hermes auth add polza --type api-key --api-key pza_ключ2
+```
+
 ```yaml
-image_gen:
-  provider: polza
-  polza:
-    model: yandex/yandex-art
-
-plugins:
-  enabled:
-    - image_gen/polza
+credential_pool_strategies:
+  polza: round_robin
 ```
 
-**Включение тулы на платформе:** Чтобы модель могла вызывать `image_generate`, убедись что в активном toolsets есть эта тула:
-- **CLI:** `toolsets: [hermes-cli]` — уже содержит `image_generate` по умолчанию
-- **Telegram:** запусти `hermes tools` → выбери Image Generation → включи Polza. Либо через HTTP API: открой `hermes tools` веб-интерфейс и включи `image_gen` инструмент
+### 4. Настройте Hermes
 
-**Модели по умолчанию:** `yandex/yandex-art` (2.91 ₽/image). Fallback: `seedream/5-pro-text-to-image`.
-
-**Важно:** Text-to-image only. Image-to-image / editing не поддерживается.
+```yaml
+model:
+  provider: polza
+  model: deepseek/deepseek-v4-flash
+```
 
 ---
 
-### Balance Plugin (Telegram команда `/balance`)
+### 5. Balance Plugin — `/balance` в Telegram (опционально)
 
-Отдельный плагин для проверки баланса и трат прямо из Telegram:
+Плагин для проверки баланса и трат прямо из Telegram:
+
+```bash
+ln -sf ~/git/polza-hermes-plugin/plugins/polza-balance ~/.hermes/plugins/polza-balance
+```
 
 ```yaml
 plugins:
@@ -64,12 +81,8 @@ plugins:
     - polza-balance
 ```
 
-**Установка:**
-```bash
-ln -sf ~/git/polza-hermes-plugin/plugins/polza-balance ~/.hermes/plugins/polza-balance
-```
-
 **Команды:**
+
 | Команда | Что показывает |
 |---------|----------------|
 | `/balance` | Баланс + всего потрачено |
@@ -91,44 +104,75 @@ ln -sf ~/git/polza-hermes-plugin/plugins/polza-balance ~/.hermes/plugins/polza-b
   00:00 | DeepSeek V4 Flash | 130.8K/2.4K | 0.11₽ 🗄99% 🧠2.2K | ⏱25.1s
 ```
 
-### 1. Клонируйте репозиторий
+---
+
+### 6. Image Gen Plugin — генерация изображений (опционально)
+
+Плагин для генерации изображений через Polza.ai. Использует OpenAI-совместимый эндпоинт `/v2/images/generations`.
 
 ```bash
-git clone https://github.com/akrhin/polza-hermes-plugin.git
-mkdir -p ~/.hermes/plugins/model-providers
-ln -sf "$(pwd)/polza-hermes-plugin/plugins/model-providers/polza" \
-       ~/.hermes/plugins/model-providers/polza
+ln -sf ~/git/polza-hermes-plugin/plugins/image_gen ~/.hermes/plugins/image_gen
 ```
 
-Или скопируйте `plugins/model-providers/polza/` в
-`~/.hermes/plugins/model-providers/`.
-
-### 2. Добавьте API-ключ
-
-**Вариант А — переменная окружения** (рекомендуется для одного ключа):
-
-```bash
-echo 'POLZA_API_KEY=pza_ключ' >> ~/.hermes/.env
-```
-
-**Вариант Б — Credential pool** (несколько ключей с ротацией):
-
-```bash
-hermes auth add polza --type api-key --api-key pza_ключ1
-hermes auth add polza --type api-key --api-key pza_ключ2
-```
+**Конфигурация:**
 
 ```yaml
-credential_pool_strategies:
-  polza: round_robin
-```
-
-### 3. Настройте Hermes
-
-```yaml
-model:
+image_gen:
   provider: polza
-  model: deepseek/deepseek-chat
+  polza:
+    model: yandex/yandex-art
+
+plugins:
+  enabled:
+    - image_gen/polza
+```
+
+**Включение тулы `image_generate` на платформе:**
+
+Чтобы модель могла вызвать `image_generate`, эта тула должна быть в инструментарии платформы (CLI / Telegram / Discord и т.д.). Самый надёжный способ — прописать `image_gen` (готовый toolset) в `platform_toolsets`:
+
+```yaml
+platform_toolsets:
+  cli:
+    - image_gen           # для CLI
+  telegram:
+    - image_gen           # для Telegram
+  # и для других платформ по необходимости
+```
+
+| Сценарий | Что писать |
+|----------|-----------|
+| Стандартный CLI | `platform_toolsets: { cli: [..., image_gen] }` |
+| Telegram без `hermes tools` | `telegram: [..., image_gen]` |
+| Через `hermes tools` UI | `hermes tools` → Image Generation → включить |
+
+> **Важно:** Если `image_gen` нет в `platform_toolsets` для твоей платформы, модель не будет знать о существовании этой тулы и не сможет генерировать изображения — даже если плагин установлен.
+
+**Модели по умолчанию:** `yandex/yandex-art` (2.91 ₽/image). Fallback: `seedream/5-pro-text-to-image`.
+
+**Ограничение:** Text-to-image only. Image-to-image / editing не поддерживается.
+
+**Обновление с v1.0.0 на v1.0.1:**
+
+Если плагин был установлен раньше (старый OpenRouter-совместимый вариант):
+
+```bash
+cd ~/git/polza-hermes-plugin
+git pull origin main
+```
+
+Убедиться, что в конфиге указана рабочая модель (старые `tongyi-mai/z-image` и `google/gemini-2.5-flash-image` несовместимы с новым API):
+
+```yaml
+image_gen:
+  provider: polza
+  polza:
+    model: yandex/yandex-art
+```
+
+Перезагрузить gateway (из отдельного терминала):
+```bash
+systemctl --user restart hermes-gateway
 ```
 
 ## Настройка

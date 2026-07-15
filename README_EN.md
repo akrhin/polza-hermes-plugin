@@ -18,44 +18,61 @@
 
 ## Installation
 
-### Provider (model-provider)
+### 1. Clone the repository
 
-### Balance Plugin (Telegram `/balance` command)
-
----
-
-### Image Gen Plugin (image generation)
-
-A plugin for image generation via Polza.ai. Uses the OpenAI-compatible `/v2/images/generations` endpoint — standard API, not chat-completions-with-modalities.
-
-**Setup:**
 ```bash
-ln -sf ~/git/polza-hermes-plugin/plugins/image_gen ~/.hermes/plugins/image_gen
+git clone https://github.com/akrhin/polza-hermes-plugin.git
 ```
 
-**Configuration:**
+### 2. Model Provider (core LLM provider)
+
+Adds Polza.ai as a first-class provider for all chat requests.
+
+```bash
+mkdir -p ~/.hermes/plugins/model-providers
+ln -sf "$(pwd)/polza-hermes-plugin/plugins/model-providers/polza" \
+       ~/.hermes/plugins/model-providers/polza
+```
+
+Or copy `plugins/model-providers/polza/` directly into `~/.hermes/plugins/model-providers/`.
+
+### 3. Add API Key
+
+**Option A — Environment variable** (recommended for a single key):
+
+```bash
+echo 'POLZA_API_KEY=pza_your_key_here' >> ~/.hermes/.env
+```
+
+**Option B — Credential pool** (multiple keys with rotation):
+
+```bash
+hermes auth add polza --type api-key --api-key pza_your_key_here
+hermes auth add polza --type api-key --api-key pza_second_key
+```
+
 ```yaml
-image_gen:
-  provider: polza
-  polza:
-    model: yandex/yandex-art
-
-plugins:
-  enabled:
-    - image_gen/polza
+credential_pool_strategies:
+  polza: round_robin
 ```
 
-**Enabling the tool on your platform:** For the model to call `image_generate`, the tool must be in the active toolset:
-- **CLI:** `toolsets: [hermes-cli]` — already includes `image_generate`
-- **Telegram:** run `hermes tools` → pick Image Generation → enable Polza
+### 4. Configure Hermes
 
-**Default models:** `yandex/yandex-art` (2.91 RUB/image). Fallback: `seedream/5-pro-text-to-image`.
-
-**Note:** Text-to-image only. Image-to-image / editing is not supported.
+```yaml
+model:
+  provider: polza
+  model: deepseek/deepseek-v4-flash
+```
 
 ---
 
-A separate plugin to check balance and spending directly from Telegram:
+### 5. Balance Plugin — `/balance` in Telegram (optional)
+
+Check balance and spending directly from Telegram:
+
+```bash
+ln -sf ~/git/polza-hermes-plugin/plugins/polza-balance ~/.hermes/plugins/polza-balance
+```
 
 ```yaml
 plugins:
@@ -63,12 +80,8 @@ plugins:
     - polza-balance
 ```
 
-**Setup:**
-```bash
-ln -sf ~/git/polza-hermes-plugin/plugins/polza-balance ~/.hermes/plugins/polza-balance
-```
-
 **Commands:**
+
 | Command | Shows |
 |---------|-------|
 | `/balance` | Balance + total spent |
@@ -90,44 +103,74 @@ Example output:
   00:00 | DeepSeek V4 Flash | 130.8K/2.4K | 0.11₽ 🗄99% 🧠2.2K | ⏱25.1s
 ```
 
-### 1. Clone the repository
+---
+
+### 6. Image Gen Plugin — image generation (optional)
+
+A plugin for image generation via Polza.ai. Uses the OpenAI-compatible `/v2/images/generations` endpoint.
 
 ```bash
-git clone https://github.com/akrhin/polza-hermes-plugin.git
-mkdir -p ~/.hermes/plugins/model-providers
-ln -sf "$(pwd)/polza-hermes-plugin/plugins/model-providers/polza" \
-       ~/.hermes/plugins/model-providers/polza
+ln -sf ~/git/polza-hermes-plugin/plugins/image_gen ~/.hermes/plugins/image_gen
 ```
 
-Or copy `plugins/model-providers/polza/` directly into
-`~/.hermes/plugins/model-providers/`.
-
-### 2. Add API Key
-
-**Option A — Environment variable** (recommended for a single key):
-
-```bash
-echo 'POLZA_API_KEY=pza_yo...ere' >> ~/.hermes/.env
-```
-
-**Option B — Credential pool** (multiple keys with rotation):
-
-```bash
-hermes auth add polza --type api-key --api-key pza_your_key_here
-hermes auth add polza --type api-key --api-key pza_second_key
-```
+**Configuration:**
 
 ```yaml
-credential_pool_strategies:
-  polza: round_robin
-```
-
-### 3. Configure Hermes
-
-```yaml
-model:
+image_gen:
   provider: polza
-  model: deepseek-chat
+  polza:
+    model: yandex/yandex-art
+
+plugins:
+  enabled:
+    - image_gen/polza
+```
+
+**Enabling the `image_generate` tool on your platform:**
+
+For the model to call `image_generate`, the tool must be in the platform's toolset. The most reliable way — add `image_gen` (a built-in toolset) to `platform_toolsets`:
+
+```yaml
+platform_toolsets:
+  cli:
+    - image_gen           # for CLI
+  telegram:
+    - image_gen           # for Telegram
+```
+
+| Scenario | Config |
+|----------|--------|
+| Standard CLI | `platform_toolsets: { cli: [..., image_gen] }` |
+| Telegram | `telegram: [..., image_gen]` |
+| Via `hermes tools` UI | `hermes tools` → Image Generation → enable |
+
+> **Important:** Without `image_gen` in `platform_toolsets`, the model won't know this tool exists and won't generate images — even if the plugin is installed.
+
+**Default models:** `yandex/yandex-art` (2.91 RUB/image). Fallback: `seedream/5-pro-text-to-image`.
+
+**Note:** Text-to-image only. Image-to-image / editing is not supported.
+
+**Updating from v1.0.0 to v1.0.1:**
+
+If you had the old OpenRouter-compatible version installed:
+
+```bash
+cd ~/git/polza-hermes-plugin
+git pull origin main
+```
+
+Make sure your config uses a compatible model (old `tongyi-mai/z-image` and `google/gemini-2.5-flash-image` don't work with the new API):
+
+```yaml
+image_gen:
+  provider: polza
+  polza:
+    model: yandex/yandex-art
+```
+
+Restart gateway (from a separate terminal):
+```bash
+systemctl --user restart hermes-gateway
 ```
 
 ## Configuration

@@ -195,10 +195,19 @@ toolsets:
 
 ### Как включить image_gen на платформе
 
-Чтобы модель могла вызывать `image_generate`, тула должна быть в активном toolsets.
+Чтобы модель могла вызывать `image_generate`, тула должна быть в инструментарии платформы. Самый надёжный способ — добавить `image_gen` (готовый toolset) в `platform_toolsets` для каждой платформы, где нужна генерация:
 
-1. **Для CLI:** в `toolsets` включи `hermes-cli`
-2. **Для Telegram:** открой `hermes tools` → включи `image_gen` инструмент, или добавь кастомный toolsets с `image_generate`
+```yaml
+platform_toolsets:
+  cli:
+    - image_gen
+  telegram:
+    - image_gen
+```
+
+Либо через `hermes tools` → Image Generation → включить.
+
+> **Важно:** Без этого модель не будет знать о туле, даже если плагин установлен и работает.
 
 ### Структура
 

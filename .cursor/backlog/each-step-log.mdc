@@ -41,3 +41,4 @@ Types: `EDIT`, `RUN`, `TEST`, `INSTALL`, `FIX`, `REFACTOR`, `DOC`, `CONFIG`, `DE
 || 2026-07-15 15:10 MSK | CONFIG | ~/.hermes/config.yaml | Включён image_gen в Telegram toolsets (через hermes tools). | ✅ |
 || 2026-07-15 15:12 MSK | TEST | image_generate tool | image_generate вызывается напрямую из моего инструментария — работает через Polza. | ✅ |
 || 2026-07-15 15:15 MSK | DOC | Все файлы | Обновлены: README.md, README_EN.md, AGENTS.md, ARCHITECTURE.md, plugin.yaml, significant-changes-summary.mdc, each-step-log.mdc | ✅ |
+|| 2026-07-15 15:30 MSK | DOC | README.md, README_EN.md, AGENTS.md | Расширен раздел про включение image_gen — добавлен platform_toolsets с примерами для CLI и Telegram | ✅ |
