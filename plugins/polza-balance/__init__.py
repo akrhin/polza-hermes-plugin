@@ -59,7 +59,7 @@ def _provider_dot(provider_name: str) -> str:
 def _fetch_json(url: str) -> dict:
     key = os.environ.get("POLZA_API_KEY", "")
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {key}"})
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    with urllib.request.urlopen(req, timeout=15) as resp:  # nosec B310 — hardcoded URLs to Polza API only
         return json.loads(resp.read())
 
 

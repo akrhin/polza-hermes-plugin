@@ -34,7 +34,3 @@ select = ["E", "W", "F", "I", "N"]
 
 [tool.ruff.format]
 quote-style = "double"
-
-[tool.bandit]
-exclude_dirs = ["tests"]
-skips = ["B310"]
