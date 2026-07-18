@@ -198,6 +198,16 @@ class PolzaProfile(ProviderProfile):
 
         return result if result else None
 
+    # ── Proxy methods for backward compatibility (called by tests) ──
+
+    def _extra_body_provider_from_config(self) -> dict[str, Any] | None:
+        """Backward-compatible proxy for module-level function."""
+        return _extra_body_provider_from_config()
+
+    def _plugins_from_config(self) -> list[dict[str, Any]] | None:
+        """Backward-compatible proxy for module-level function."""
+        return _plugins_from_config()
+
 
 # ── Provider registration ──────────────────────────────────
 
