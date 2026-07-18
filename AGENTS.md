@@ -3,7 +3,7 @@
 ## Репозиторий: polza-hermes-plugin
 ## Деплой
 
-Оба плагина прилинкованы симлинками:
+Все три плагина прилинкованы симлинками:
 
 ```bash
 ln -sf ~/git/polza-hermes-plugin/plugins/model-providers/polza ~/.hermes/plugins/model-providers/polza
@@ -29,7 +29,7 @@ plugins:
 - **polza-webui-extensions** — [akrhin/polza-webui-extensions](https://github.com/akrhin/polza-webui-extensions) — UI-расширения для Hermes WebUI
 - **polza-hermes-plugin** (этот репозиторий) — провайдер + баланс
 
-## Два Hermes-плагина в одном репозитории:
+## Три Hermes-плагина в одном репозитории:
 
 | Плагин | Путь | Что делает |
 |--------|------|------------|

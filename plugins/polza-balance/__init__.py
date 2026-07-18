@@ -3,12 +3,15 @@ Polza Balance Plugin — /balance slash command for Telegram
 """
 
 import json
+import logging
 import urllib.request
 import os
 from datetime import datetime, timezone, timedelta
 
 API_BASE = "https://polza.ai/api/v1"
 MSK = timezone(timedelta(hours=3))
+
+logger = logging.getLogger(__name__)
 
 # ── Provider colors (copied from polza-balance.js widget) ──────────
 PROVIDER_COLORS = {
@@ -74,7 +77,8 @@ def _to_msk(created_at: str) -> str:
     try:
         dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
         return dt.astimezone(MSK).strftime("%H:%M")
-    except Exception:
+    except (ValueError, TypeError):
+        logger.debug("_to_msk: invalid created_at=%r", created_at)
         return "??:??"
 
 
@@ -95,7 +99,7 @@ def _handle_balance(raw_args: str) -> str:
     for word in args.split():
         try:
             n = int(word)
-            if n in (10, 20):
+            if n > 0:
                 recent_n = n
         except ValueError:
             pass
@@ -137,7 +141,8 @@ def _handle_balance(raw_args: str) -> str:
                     f"&dateFrom={date_from}&dateTo={date_to}"
                     f"&sortBy=createdAt&sortOrder=desc"
                 )
-            except Exception:
+            except Exception:  # noqa: BLE001 — network errors are transient
+                logger.warning("pagination page=%d failed", page, exc_info=True)
                 break
             items = data.get("items", [])
             if not items:
@@ -205,8 +210,7 @@ def _handle_balance(raw_args: str) -> str:
             by_provider_model.items(), key=lambda x: x[1]["cost"], reverse=True
         )[:5]
         if top5:
-            dash5 = chr(45) + "5"
-            lines.append(f"  \U0001f3c6 <b>\u0422\u043e\u043f{dash5}</b>")
+            lines.append("  🏆 <b>Топ-5</b>")
             for (provider, model_name), s in top5:
                 dot = _provider_dot(provider)
                 tag = f"{dot} " if provider else ""
@@ -241,7 +245,8 @@ def _handle_balance(raw_args: str) -> str:
                     f"&sortBy=createdAt&sortOrder=desc"
                 )
                 recent_items = data.get("items", [])[:recent_n]
-            except Exception:
+            except Exception:  # noqa: BLE001 — network errors
+                logger.warning("failed to fetch recent items", exc_info=True)
                 recent_items = []
 
         if not recent_items:

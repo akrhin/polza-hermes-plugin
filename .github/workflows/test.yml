@@ -26,14 +26,22 @@ jobs:
           ln -sf "${{ github.workspace }}/plugins/model-providers/polza" \
                  ~/.hermes/plugins/model-providers/polza
 
-      - name: Install test deps
+      - name: Install deps
         run: |
-          pip install pytest --quiet
+          pip install pytest ruff bandit --quiet
+
+      - name: Lint (ruff)
+        run: |
+          ruff check plugins/ tests/
+
+      - name: SAST (bandit)
+        run: |
+          bandit -r plugins/ -ll -q
+
+      - name: Compile check
+        run: |
+          python -m compileall plugins/
 
       - name: Run unit tests
         run: |
-          python -m pytest tests/test_polza_profile.py -q -v
-
-      - name: Lint check
-        run: |
-          python -m py_compile plugins/model-providers/polza/__init__.py
+          python -m pytest tests/ -q -v

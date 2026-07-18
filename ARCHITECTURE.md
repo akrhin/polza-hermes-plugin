@@ -13,9 +13,19 @@ plugins/model-providers/polza/
 ├── __init__.py       # PolzaProfile — ProviderProfile subclass
 ├── plugin.yaml       # Manifest (name, kind, version)
 
+plugins/polza-balance/
+├── __init__.py       # /balance slash command
+├── plugin.yaml       # Manifest
+
+plugins/image_gen/polza/
+├── __init__.py       # PolzaImageProvider — ImageGenProvider subclass
+└── plugin.yaml       # Manifest
+
 tests/
 ├── test_polza_profile.py   # Unit tests (no API key needed)
-└── test_polza_live.py      # Smoke tests (requires POLZA_API_KEY)
+├── test_polza_live.py      # Smoke tests (requires POLZA_API_KEY)
+├── test_polza_balance.py   # Balance formatting tests
+└── test_polza_image_gen.py # Image gen model chain tests
 ```
 
 ## Auto-wired layers

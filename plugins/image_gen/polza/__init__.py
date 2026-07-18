@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 import os
 from typing import Any, Dict, List, Optional
+from urllib.parse import urljoin
 
 import requests
 
@@ -31,8 +32,8 @@ from agent.image_gen_provider import (
 logger = logging.getLogger(__name__)
 
 # Cheap image models on Polza (per-request RUB prices)
-_POLZA_DEFAULT = "yandex/yandex-art"                  # 2.91 RUB — verified working
-_POLZA_FALLBACK = "seedream/5-pro-text-to-image"       # fallback
+_POLZA_DEFAULT = "yandex/yandex-art"                    # 2.91 RUB — verified working
+_POLZA_FALLBACK = "seedream/5-pro-text-to-image"         # fallback
 
 # Timeout per image generation request
 _REQUEST_TIMEOUT = 120.0
@@ -48,14 +49,32 @@ _SIZES = {
 def _load_image_gen_config() -> Dict[str, Any]:
     """Read the ``image_gen`` section from config.yaml (``{}`` on failure)."""
     try:
-        from hermes_cli.config import load_config
+        from hermes_cli.config import load_config  # noqa: PLC0415 — late import avoids hermetic dep
 
         cfg = load_config()
         section = cfg.get("image_gen") if isinstance(cfg, dict) else None
         return section if isinstance(section, dict) else {}
-    except Exception as exc:
+    except ImportError:
+        logger.debug("could not import hermes_cli.config")
+        return {}
+    except Exception as exc:  # noqa: BLE001
         logger.debug("could not load image_gen config: %s", exc)
         return {}
+
+
+def _build_images_endpoint(base_url: str) -> str:
+    """Build the /v2/images/generations endpoint URL from the base API URL.
+
+    The images endpoint lives at a different path from the chat completions API.
+    Examples:
+      https://polza.ai/api/v1  →  https://polza.ai/api/v2/images/generations
+      https://polza.ai/api     →  https://polza.ai/api/v2/images/generations
+    """
+    base = base_url.rstrip("/")
+    # If base_url ends with /api/v1, images live at /api/v2/...
+    if base.endswith("/api/v1"):
+        base = base[:-len("/api/v1")] + "/api"
+    return urljoin(base + "/", "v2/images/generations")
 
 
 def _dedupe_models(models: list[str]) -> list[str]:
@@ -108,7 +127,10 @@ class PolzaImageProvider(ImageGenProvider):
     def is_available(self) -> bool:
         try:
             runtime = self._resolve_runtime()
-        except Exception:
+        except (ImportError, KeyError, TypeError):
+            return False
+        except Exception:  # noqa: BLE001 — resolve_runtime can fail in unexpected ways
+            logger.debug("is_available: unexpected error", exc_info=True)
             return False
         return bool(str(runtime.get("api_key") or "").strip())
 
@@ -150,7 +172,7 @@ class PolzaImageProvider(ImageGenProvider):
 
     def _resolve_runtime(self) -> Dict[str, Any]:
         """Resolve ``(base_url, api_key)`` via the shared runtime resolver."""
-        from hermes_cli.runtime_provider import resolve_runtime_provider
+        from hermes_cli.runtime_provider import resolve_runtime_provider  # noqa: PLC0415
 
         return resolve_runtime_provider(requested=self._runtime_name)
 
@@ -233,7 +255,7 @@ class PolzaImageProvider(ImageGenProvider):
 
         try:
             runtime = self._resolve_runtime()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             return error_response(
                 error=f"Could not resolve {self._display} credentials: {exc}",
                 error_type="missing_api_key",
@@ -256,8 +278,7 @@ class PolzaImageProvider(ImageGenProvider):
                 aspect_ratio=aspect,
             )
 
-        # /v2/images/generations lives at the API root, not under /api/v1
-        images_endpoint = base_url.replace("/api/v1", "/api") + "/v2/images/generations"
+        images_endpoint = _build_images_endpoint(base_url)
 
         headers = {
             "Authorization": f"Bearer {api_key}",
@@ -327,6 +348,12 @@ class PolzaImageProvider(ImageGenProvider):
                     aspect_ratio=aspect,
                 )
             except requests.ConnectionError as exc:
+                if not is_last:
+                    logger.info(
+                        "%s model %s connection error; retrying with fallback %s",
+                        self._name, model_id, model_chain[i + 1],
+                    )
+                    continue
                 return error_response(
                     error=f"{self._display} connection error: {exc}",
                     error_type="connection_error",
@@ -338,7 +365,7 @@ class PolzaImageProvider(ImageGenProvider):
 
             try:
                 result = response.json()
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 return error_response(
                     error=f"{self._display} returned invalid JSON: {exc}",
                     error_type="invalid_response",
@@ -379,7 +406,7 @@ class PolzaImageProvider(ImageGenProvider):
             # Download the ephemeral URL and save locally
             try:
                 saved_path = save_url_image(img_url, prefix=f"{self._name}_gen")
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 return error_response(
                     error=f"Could not save generated image: {exc}",
                     error_type="io_error",
