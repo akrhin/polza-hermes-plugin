@@ -19,7 +19,6 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin
 
 import requests
-
 from agent.image_gen_provider import (
     DEFAULT_ASPECT_RATIO,
     ImageGenProvider,

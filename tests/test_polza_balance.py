@@ -7,7 +7,7 @@ inline — they are pure stateless functions with zero dependencies.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 # ── Inline copies of utility functions ────────────────────────────────────
 

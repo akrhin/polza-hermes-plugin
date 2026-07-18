@@ -12,7 +12,6 @@ import os
 from typing import Any
 
 import yaml
-
 from providers import register_provider
 from providers.base import ProviderProfile
 

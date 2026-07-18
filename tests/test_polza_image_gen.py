@@ -8,13 +8,11 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
-
 from plugins.image_gen.polza import (
-    _build_images_endpoint,
-    _dedupe_models,
     _POLZA_DEFAULT,
     _POLZA_FALLBACK,
+    _build_images_endpoint,
+    _dedupe_models,
 )
 
 

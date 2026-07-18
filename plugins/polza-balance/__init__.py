@@ -4,9 +4,9 @@ Polza Balance Plugin — /balance slash command for Telegram
 
 import json
 import logging
-import urllib.request
 import os
-from datetime import datetime, timezone, timedelta
+import urllib.request
+from datetime import datetime, timedelta, timezone
 
 API_BASE = "https://polza.ai/api/v1"
 MSK = timezone(timedelta(hours=3))
@@ -122,7 +122,7 @@ def _handle_balance(raw_args: str) -> str:
         f" | \u041f\u043e\u0442\u0440\u0430\u0447\u0435\u043d\u043e \u0432\u0441\u0435\u0433\u043e: {spent:.2f} \u20bd"
     )
     if amount < 100:
-        lines.append(f"\u26a0\ufe0f \u0411\u0430\u043b\u0430\u043d\u0441 \u043d\u0438\u0436\u0435 100 \u20bd!")
+        lines.append("\u26a0\ufe0f \u0411\u0430\u043b\u0430\u043d\u0441 \u043d\u0438\u0436\u0435 100 \u20bd!")
 
     all_items = []
 

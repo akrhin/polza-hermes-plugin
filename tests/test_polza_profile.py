@@ -89,7 +89,7 @@ class TestPolzaProfileBuildExtraBody:
     def test_provider_preferences_empty_falls_back_to_config(self):
         """Empty provider_preferences {} is treated as 'not set' and falls to config."""
         p = _get_profile()
-        body = p.build_extra_body(provider_preferences={})
+        p.build_extra_body(provider_preferences={})
         # With empty prefs, falls back to config.yaml's model.extra_body.provider
         # provider IS present from config — expected and correct
 
