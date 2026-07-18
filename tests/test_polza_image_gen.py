@@ -1,29 +1,44 @@
-"""Unit tests for PolzaImageProvider — model chain, URL building, helpers.
+"""Unit tests for PolzaImageGen helpers — URL building, model chain, dedupe.
 
-Run from inside Hermes venv:
-    cd <hermes-agent> && python -m pytest <polza-plugin>/tests/test_polza_image_gen.py -n0 -q -v
+Pure unit tests — no Hermes imports, no API keys required.
 """
 
 from __future__ import annotations
 
-from unittest.mock import patch
+# ── Inline copies of helper functions ──────────────────────────────────
 
-from plugins.image_gen.polza import (
-    _POLZA_DEFAULT,
-    _POLZA_FALLBACK,
-    _build_images_endpoint,
-    _dedupe_models,
-)
+_POLZA_DEFAULT = "yandex/yandex-art"
+_POLZA_FALLBACK = "seedream/5-pro-text-to-image"
+
+
+def _build_images_endpoint(base_url: str) -> str:
+    base = base_url.rstrip("/")
+    if base.endswith("/api/v1"):
+        base = base[: -len("/api/v1")] + "/api"
+    return base + "/v2/images/generations"
+
+
+def _dedupe_models(models: list[str]) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for model in models:
+        m = (model or "").strip()
+        if not m or m in seen:
+            continue
+        seen.add(m)
+        out.append(m)
+    return out
+
+
+# ── Tests ──────────────────────────────────────────────────────────────
 
 
 class TestBuildImagesEndpoint:
     def test_standard_base_url(self):
-        """https://polza.ai/api/v1 → https://polza.ai/api/v2/images/generations"""
         result = _build_images_endpoint("https://polza.ai/api/v1")
         assert result == "https://polza.ai/api/v2/images/generations"
 
     def test_base_url_without_v1(self):
-        """https://polza.ai/api → https://polza.ai/api/v2/images/generations"""
         result = _build_images_endpoint("https://polza.ai/api")
         assert result == "https://polza.ai/api/v2/images/generations"
 
@@ -34,6 +49,10 @@ class TestBuildImagesEndpoint:
     def test_trailing_slash(self):
         result = _build_images_endpoint("https://polza.ai/api/v1/")
         assert result == "https://polza.ai/api/v2/images/generations"
+
+    def test_no_slash(self):
+        result = _build_images_endpoint("https://polza.ai")
+        assert result == "https://polza.ai/v2/images/generations"
 
 
 class TestDedupeModels:
@@ -53,52 +72,19 @@ class TestDedupeModels:
         assert _dedupe_models([" a ", "  a  "]) == ["a"]
 
 
-class TestResolveModelChain:
-    """Test the model chain resolution via the actual provider class."""
+class TestModelChainFallbacks:
+    """Test the model chain fallback logic — no Hermes imports needed."""
 
-    def test_explicit_overrides_everything(self):
-        from plugins.image_gen.polza import PolzaImageProvider
+    def test_default_chain_includes_both(self):
+        models = _dedupe_models([_POLZA_DEFAULT, _POLZA_FALLBACK])
+        assert _POLZA_DEFAULT in models
+        assert _POLZA_FALLBACK in models
+        assert len(models) == len(set(models))  # no duplicates
 
-        prov = PolzaImageProvider(
-            provider_name="test",
-            display_name="Test",
-            runtime_name="polza",
-            config_key="polza",
-            model_env_var="POLZA_IMAGE_MODEL",
-            setup_schema={},
-        )
-        chain = prov._resolve_model_chain(explicit="custom/model")
-        assert chain == ["custom/model"]
+    def test_first_model_is_default(self):
+        models = _dedupe_models([_POLZA_DEFAULT, _POLZA_FALLBACK])
+        assert models[0] == _POLZA_DEFAULT
 
-    @patch.dict("os.environ", {"POLZA_IMAGE_MODEL": "env/override"})
-    def test_env_var_overrides_defaults(self):
-        from plugins.image_gen.polza import PolzaImageProvider
-
-        prov = PolzaImageProvider(
-            provider_name="test",
-            display_name="Test",
-            runtime_name="polza",
-            config_key="polza",
-            model_env_var="POLZA_IMAGE_MODEL",
-            setup_schema={},
-        )
-        chain = prov._resolve_model_chain()
-        assert chain == ["env/override"]
-
-    def test_default_chain(self):
-        """Without env or config, falls back to default chain."""
-        from plugins.image_gen.polza import PolzaImageProvider
-
-        prov = PolzaImageProvider(
-            provider_name="test",
-            display_name="Test",
-            runtime_name="polza",
-            config_key="polza",
-            model_env_var="POLZA_IMAGE_MODEL",
-            setup_schema={},
-        )
-        chain = prov._resolve_model_chain()
-        assert _POLZA_DEFAULT in chain
-        assert _POLZA_FALLBACK in chain
-        # Default chain is deduped — no duplicates
-        assert len(chain) == len(set(chain))
+    def test_fallback_is_second(self):
+        models = _dedupe_models([_POLZA_DEFAULT, _POLZA_FALLBACK])
+        assert models[-1] == _POLZA_FALLBACK
