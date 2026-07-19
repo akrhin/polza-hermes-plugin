@@ -4,4 +4,7 @@ description: "Polza.ai image generation backend via /v2/images/generations (Open
 author: akrhin
 kind: backend
 requires_env:
-  - POLZA_API_KEY
+  - name: POLZA_API_KEY
+    description: "Polza.ai API key"
+    url: "https://polza.ai/dashboard"
+    secret: true

@@ -6,6 +6,9 @@ Run from inside Hermes venv:
 
 from __future__ import annotations
 
+import sys
+from unittest import mock
+
 from providers import get_provider_profile
 from providers.base import ProviderProfile
 
@@ -101,9 +104,7 @@ class TestPolzaProfileBuildExtraBody:
 
     def test_file_parser_plugin(self):
         p = _get_profile()
-        body = p.build_extra_body(
-            polza_file_parser={"pdf": {"engine": "mistral-ocr"}}
-        )
+        body = p.build_extra_body(polza_file_parser={"pdf": {"engine": "mistral-ocr"}})
         assert "plugins" in body
         assert {"id": "file-parser", "pdf": {"engine": "mistral-ocr"}} in body["plugins"]
 
@@ -194,16 +195,12 @@ class TestPolzaProfileBuildExtraBody:
 
     def test_web_search_with_engine(self):
         p = _get_profile()
-        body = p.build_extra_body(
-            polza_web_search={"max_results": 5, "engine": "native"}
-        )
+        body = p.build_extra_body(polza_web_search={"max_results": 5, "engine": "native"})
         assert {"id": "web", "max_results": 5, "engine": "native"} in body["plugins"]
 
     def test_file_parser_with_ocr(self):
         p = _get_profile()
-        body = p.build_extra_body(
-            polza_file_parser={"images": {"ocr": True}}
-        )
+        body = p.build_extra_body(polza_file_parser={"images": {"ocr": True}})
         assert {"id": "file-parser", "images": {"ocr": True}} in body["plugins"]
 
 
@@ -341,9 +338,7 @@ class TestPolzaProfileParseModelAlias:
     def test_unknown_key_still_parsed_known(self):
         """Alias with unknown keys shouldn't break parsing of known ones."""
         p = _get_profile()
-        result = p._parse_model_alias(
-            "model@foo=bar&provider=OpenAI&baz=qux"
-        )
+        result = p._parse_model_alias("model@foo=bar&provider=OpenAI&baz=qux")
         assert result is not None
         assert result["provider_only"] == "OpenAI"
         assert "foo" not in result
@@ -361,26 +356,36 @@ class TestPolzaProfileParseModelAlias:
 
 
 class TestPolzaProfileConfigFallback:
-    """_extra_body_provider_from_config() and _plugins_from_config() — config.yaml reading."""
+    """_extra_body_provider_from_config() and _plugins_from_config() — mocked config.yaml.
+
+    Mock the MODULE-LEVEL functions, not the instance methods.
+    Instance methods are proxy wrappers that delegate to module-level functions.
+    Mocking the module function lets us test the real delegation path.
+    """
 
     def test_provider_from_real_config(self):
         p = _get_profile()
-        result = p._extra_body_provider_from_config()
-        # Reads from actual ~/.hermes/config.yaml
-        if result is not None:
-            assert isinstance(result, dict)
-            assert "only" in result or "sort" in result or "order" in result
-        # If config has no extra_body.provider, None is also valid
+        # Get the module where PolzaProfile is defined
+        module = sys.modules[p.__class__.__module__]
+        with mock.patch.object(
+            module,
+            "_extra_body_provider_from_config",
+            return_value={"only": ["OpenAI"], "sort": "price"},
+        ):
+            # Call instance method → delegates to mocked module function
+            result = p._extra_body_provider_from_config()
+        assert isinstance(result, dict)
+        assert "only" in result
+        assert result["only"] == ["OpenAI"]
 
     def test_plugins_from_real_config(self):
         p = _get_profile()
-        result = p._plugins_from_config()
-        # Reads from actual ~/.hermes/config.yaml
-        # May be None (no plugins in config) or a list
-        if result is not None:
-            assert isinstance(result, list)
-            for pl in result:
-                assert "id" in pl
-                assert pl["id"] in ("web", "file-parser", "response-healing")
-
-
+        module = sys.modules[p.__class__.__module__]
+        with mock.patch.object(
+            module,
+            "_plugins_from_config",
+            return_value=[{"id": "web", "max_results": 3}],
+        ):
+            result = p._plugins_from_config()
+        assert isinstance(result, list)
+        assert result[0]["id"] == "web"

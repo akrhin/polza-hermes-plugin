@@ -16,7 +16,6 @@ from __future__ import annotations
 import logging
 import os
 from typing import Any, Dict, List, Optional
-from urllib.parse import urljoin
 
 import requests
 from agent.image_gen_provider import (
@@ -28,11 +27,14 @@ from agent.image_gen_provider import (
     success_response,
 )
 
-logger = logging.getLogger(__name__)
+from ._utils import (
+    _POLZA_DEFAULT,
+    _POLZA_FALLBACK,
+    _build_images_endpoint,
+    _dedupe_models,
+)
 
-# Cheap image models on Polza (per-request RUB prices)
-_POLZA_DEFAULT = "yandex/yandex-art"                    # 2.91 RUB — verified working
-_POLZA_FALLBACK = "seedream/5-pro-text-to-image"         # fallback
+logger = logging.getLogger(__name__)
 
 # Timeout per image generation request
 _REQUEST_TIMEOUT = 120.0
@@ -59,33 +61,6 @@ def _load_image_gen_config() -> Dict[str, Any]:
     except Exception as exc:  # noqa: BLE001
         logger.debug("could not load image_gen config: %s", exc)
         return {}
-
-
-def _build_images_endpoint(base_url: str) -> str:
-    """Build the /v2/images/generations endpoint URL from the base API URL.
-
-    The images endpoint lives at a different path from the chat completions API.
-    Examples:
-      https://polza.ai/api/v1  →  https://polza.ai/api/v2/images/generations
-      https://polza.ai/api     →  https://polza.ai/api/v2/images/generations
-    """
-    base = base_url.rstrip("/")
-    # If base_url ends with /api/v1, images live at /api/v2/...
-    if base.endswith("/api/v1"):
-        base = base[:-len("/api/v1")] + "/api"
-    return urljoin(base + "/", "v2/images/generations")
-
-
-def _dedupe_models(models: list[str]) -> list[str]:
-    out: list[str] = []
-    seen: set[str] = set()
-    for model in models:
-        m = (model or "").strip()
-        if not m or m in seen:
-            continue
-        seen.add(m)
-        out.append(m)
-    return out
 
 
 class PolzaImageProvider(ImageGenProvider):
@@ -306,19 +281,22 @@ class PolzaImageProvider(ImageGenProvider):
                 resp = exc.response
                 status = resp.status_code if resp is not None else 0
                 try:
-                    err_msg = resp.json().get("error", {}).get(
-                        "message", resp.text[:300]
-                    )
+                    err_msg = resp.json().get("error", {}).get("message", resp.text[:300])
                 except Exception:
                     err_msg = resp.text[:300] if resp is not None else str(exc)
                 logger.error(
                     "%s image gen failed (%d) on %s: %s",
-                    self._name, status, model_id, err_msg,
+                    self._name,
+                    status,
+                    model_id,
+                    err_msg,
                 )
                 if not is_last:
                     logger.info(
                         "%s model %s failed; retrying with fallback %s",
-                        self._name, model_id, model_chain[i + 1],
+                        self._name,
+                        model_id,
+                        model_chain[i + 1],
                     )
                     continue
                 last_error = error_response(
@@ -334,12 +312,13 @@ class PolzaImageProvider(ImageGenProvider):
                 if not is_last:
                     logger.info(
                         "%s model %s timed out; retrying with fallback %s",
-                        self._name, model_id, model_chain[i + 1],
+                        self._name,
+                        model_id,
+                        model_chain[i + 1],
                     )
                     continue
                 return error_response(
-                    error=f"{self._display} image generation timed out "
-                    f"({int(_REQUEST_TIMEOUT)}s)",
+                    error=f"{self._display} image generation timed out ({int(_REQUEST_TIMEOUT)}s)",
                     error_type="timeout",
                     provider=self._name,
                     model=model_id,
@@ -350,7 +329,9 @@ class PolzaImageProvider(ImageGenProvider):
                 if not is_last:
                     logger.info(
                         "%s model %s connection error; retrying with fallback %s",
-                        self._name, model_id, model_chain[i + 1],
+                        self._name,
+                        model_id,
+                        model_chain[i + 1],
                     )
                     continue
                 return error_response(

@@ -3,3 +3,8 @@ kind: model-provider
 version: 1.0.0
 description: Polza.ai — unified API for 200+ AI models with RUB billing
 author: akrhin
+requires_env:
+  - name: POLZA_API_KEY
+    description: "Polza.ai API key"
+    url: "https://polza.ai/dashboard"
+    secret: true

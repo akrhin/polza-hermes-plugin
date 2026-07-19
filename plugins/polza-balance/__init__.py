@@ -17,12 +17,12 @@ logger = logging.getLogger(__name__)
 PROVIDER_COLORS = {
     "DeepSeek": "#2e86de",
     "GMICloud": "#e74c3c",
-    "Nebius":   "#2ecc71",
+    "Nebius": "#2ecc71",
     "Parasail": "#f39c12",
-    "Morph":    "#9b59b6",
-    "Venice":   "#1abc9c",
-    "Nvidia":   "#e91e63",
-    "Mancer":   "#34495e",
+    "Morph": "#9b59b6",
+    "Venice": "#1abc9c",
+    "Nvidia": "#e91e63",
+    "Mancer": "#34495e",
 }
 
 COLOR_TO_EMOJI = {
@@ -65,9 +65,9 @@ def _fetch_json(url: str) -> dict:
 
 def _fmt_num(n: int) -> str:
     if n >= 1_000_000:
-        return f"{n/1_000_000:.1f}M"
+        return f"{n / 1_000_000:.1f}M"
     if n >= 1_000:
-        return f"{n/1_000:.1f}K"
+        return f"{n / 1_000:.1f}K"
     return str(n)
 
 
@@ -122,7 +122,9 @@ def _handle_balance(raw_args: str) -> str:
         f" | \u041f\u043e\u0442\u0440\u0430\u0447\u0435\u043d\u043e \u0432\u0441\u0435\u0433\u043e: {spent:.2f} \u20bd"
     )
     if amount < 100:
-        lines.append("\u26a0\ufe0f \u0411\u0430\u043b\u0430\u043d\u0441 \u043d\u0438\u0436\u0435 100 \u20bd!")
+        lines.append(
+            "\u26a0\ufe0f \u0411\u0430\u043b\u0430\u043d\u0441 \u043d\u0438\u0436\u0435 100 \u20bd!"
+        )
 
     all_items = []
 
@@ -181,7 +183,10 @@ def _handle_balance(raw_args: str) -> str:
             pm_key = (provider, model_name)
             if pm_key not in by_provider_model:
                 by_provider_model[pm_key] = {
-                    "cost": 0.0, "prompt": 0, "completion": 0, "gen": 0,
+                    "cost": 0.0,
+                    "prompt": 0,
+                    "completion": 0,
+                    "gen": 0,
                 }
             s = by_provider_model[pm_key]
             s["cost"] += cost
@@ -206,9 +211,7 @@ def _handle_balance(raw_args: str) -> str:
             f"\U0001f4b0{total_cost:.2f}\u20bd"
         )
 
-        top5 = sorted(
-            by_provider_model.items(), key=lambda x: x[1]["cost"], reverse=True
-        )[:5]
+        top5 = sorted(by_provider_model.items(), key=lambda x: x[1]["cost"], reverse=True)[:5]
         if top5:
             lines.append("  🏆 <b>Топ-5</b>")
             for (provider, model_name), s in top5:
@@ -220,10 +223,10 @@ def _handle_balance(raw_args: str) -> str:
                 )
 
         if len(by_provider) > 0:
-            provider_list = sorted(
-                by_provider.items(), key=lambda x: x[1]["cost"], reverse=True
+            provider_list = sorted(by_provider.items(), key=lambda x: x[1]["cost"], reverse=True)
+            lines.append(
+                "  \u26c1 <b>\u041f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440\u044b</b>"
             )
-            lines.append("  \u26c1 <b>\u041f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440\u044b</b>")
             max_pn = max(len(pn) for pn, _ in provider_list) if provider_list else 0
             for pn, ps in provider_list:
                 dot = _provider_dot(pn)
@@ -253,11 +256,15 @@ def _handle_balance(raw_args: str) -> str:
             recent_items = []
 
         lines.append("")
-        lines.append(f"\U0001f550 <b>\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 {recent_n} \u0437\u0430\u043f\u0440\u043e\u0441\u043e\u0432</b>")
+        lines.append(
+            f"\U0001f550 <b>\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 {recent_n} \u0437\u0430\u043f\u0440\u043e\u0441\u043e\u0432</b>"
+        )
         lines.append("<pre>")
 
         # Plain text headers — no emoji (monospace breaks on emoji width)
-        lines.append(f"{'Время':>5s} | {'Модель':28s} | {'In/Out':13s} | {'Цена':>20s} | {'Длит':>6s}")
+        lines.append(
+            f"{'Время':>5s} | {'Модель':28s} | {'In/Out':13s} | {'Цена':>20s} | {'Длит':>6s}"
+        )
         lines.append(
             f"{'-----':>5s} | {'----------------------------':28s} | "
             f"{'-------------':13s} | {'--------------------':20s} | {'------':>6s}"
@@ -278,19 +285,17 @@ def _handle_balance(raw_args: str) -> str:
             # No emoji dot inside <pre> — plain model name only
             name = model_name[:28]
             gen_ms = item.get("generationTimeMs", 0) or 0
-            time_str = f"{gen_ms/1000:.1f}s" if gen_ms >= 1000 else f"{gen_ms}ms"
+            time_str = f"{gen_ms / 1000:.1f}s" if gen_ms >= 1000 else f"{gen_ms}ms"
 
             inout = f"{_fmt_num(pt)}/{_fmt_num(ct)}"
             extra = ""
             if cached > 0 and pt > 0:
-                extra += f" c{int(cached/pt*100)}%"
+                extra += f" c{int(cached / pt * 100)}%"
             if reasoning > 0:
                 extra += f" r{_fmt_num(reasoning)}"
             cost_str = f"{cost:.2f}{extra}"
 
-            lines.append(
-                f"{t:>5s} | {name:28s} | {inout:>13s} | {cost_str:>20s} | {time_str:>6s}"
-            )
+            lines.append(f"{t:>5s} | {name:28s} | {inout:>13s} | {cost_str:>20s} | {time_str:>6s}")
         lines.append("</pre>")
 
     return "\n".join(lines)

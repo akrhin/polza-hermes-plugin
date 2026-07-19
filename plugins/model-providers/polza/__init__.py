@@ -22,19 +22,30 @@ logger = logging.getLogger(__name__)
 _CONFIG_PATH = os.path.expanduser("~/.hermes/config.yaml")
 
 
-def _read_extra_body_section() -> dict[str, Any] | None:
-    """Read ``model.extra_body`` from config.yaml.
+def _load_hermes_config() -> dict[str, Any] | None:
+    """Load Hermes config via official API, falling back to direct YAML."""
+    # Prefer hermes_cli.config.load_config (handles env overrides, merging)
+    try:
+        from hermes_cli.config import load_config  # noqa: PLC0415
 
-    Returns the ``model.extra_body`` dict or ``None`` if the file,
-    model section, or extra_body section is missing or invalid.
-    """
+        return load_config()
+    except ImportError:
+        logger.debug("hermes_cli not available, falling back to direct YAML")
+    except Exception as exc:
+        logger.debug("load_config() failed: %s, falling back to direct YAML", exc)
+
+    # Fallback: direct YAML read
     try:
         with open(_CONFIG_PATH, encoding="utf-8") as f:
-            cfg = yaml.safe_load(f)
+            return yaml.safe_load(f)
     except (OSError, yaml.YAMLError):
         logger.debug("Could not read config.yaml", exc_info=True)
         return None
 
+
+def _read_extra_body_section() -> dict[str, Any] | None:
+    """Read ``model.extra_body`` from config.yaml."""
+    cfg = _load_hermes_config()
     if not isinstance(cfg, dict):
         return None
     model_cfg = cfg.get("model")
@@ -93,9 +104,7 @@ class PolzaProfile(ProviderProfile):
 
     # ── Public API: called by Hermes transport ────────────────
 
-    def build_extra_body(
-        self, *, session_id: str | None = None, **context: Any
-    ) -> dict[str, Any]:
+    def build_extra_body(self, *, session_id: str | None = None, **context: Any) -> dict[str, Any]:
         """Build Polza‑specific extra_body fields.
 
         Handles provider routing, web search, file parser, and

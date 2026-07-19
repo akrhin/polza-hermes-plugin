@@ -12,6 +12,7 @@ import pytest
 from openai import OpenAI
 
 POLZA_API_KEY = os.environ.get("POLZA_API_KEY", "")
+POLZA_REASONING_MODEL = os.environ.get("POLZA_REASONING_MODEL", "deepseek/deepseek-r1")
 REQUIRES_KEY = pytest.mark.skipif(
     not POLZA_API_KEY,
     reason="POLZA_API_KEY environment variable not set",
@@ -57,20 +58,20 @@ class TestPolzaLive:
         resp = client.chat.completions.create(
             model="openai/gpt-4o-mini",
             messages=[{"role": "user", "content": "What's the weather in Moscow?"}],
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "get_weather",
-                    "description": "Get weather for a city",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "city": {"type": "string"}
+            tools=[
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "get_weather",
+                        "description": "Get weather for a city",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {"city": {"type": "string"}},
+                            "required": ["city"],
                         },
-                        "required": ["city"]
-                    }
+                    },
                 }
-            }],
+            ],
             tool_choice="required",
         )
         msg = resp.choices[0].message
@@ -94,9 +95,13 @@ class TestPolzaLive:
 
     @REQUIRES_KEY
     def test_reasoning(self, client):
-        """Test reasoning effort with a reasoning-capable model."""
+        """Test reasoning effort with a reasoning-capable model.
+
+        Override the model via POLZA_REASONING_MODEL env var.
+        Default: deepseek/deepseek-r1
+        """
         resp = client.chat.completions.create(
-            model="deepseek/deepseek-r1",
+            model=POLZA_REASONING_MODEL,
             messages=[{"role": "user", "content": "Solve: 2x + 5 = 13"}],
             max_tokens=250,
             extra_body={

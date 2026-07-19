@@ -1,36 +1,16 @@
 """Unit tests for PolzaImageGen helpers — URL building, model chain, dedupe.
 
-Pure unit tests — no Hermes imports, no API keys required.
+Imports pure functions from ``_utils.py`` directly (no Hermes imports needed).
 """
 
 from __future__ import annotations
 
-# ── Inline copies of helper functions ──────────────────────────────────
+from tests.helpers import image_gen_utils
 
-_POLZA_DEFAULT = "yandex/yandex-art"
-_POLZA_FALLBACK = "seedream/5-pro-text-to-image"
-
-
-def _build_images_endpoint(base_url: str) -> str:
-    base = base_url.rstrip("/")
-    if base.endswith("/api/v1"):
-        base = base[: -len("/api/v1")] + "/api"
-    return base + "/v2/images/generations"
-
-
-def _dedupe_models(models: list[str]) -> list[str]:
-    out: list[str] = []
-    seen: set[str] = set()
-    for model in models:
-        m = (model or "").strip()
-        if not m or m in seen:
-            continue
-        seen.add(m)
-        out.append(m)
-    return out
-
-
-# ── Tests ──────────────────────────────────────────────────────────────
+_build_images_endpoint = image_gen_utils._build_images_endpoint
+_dedupe_models = image_gen_utils._dedupe_models
+_POLZA_DEFAULT = image_gen_utils._POLZA_DEFAULT
+_POLZA_FALLBACK = image_gen_utils._POLZA_FALLBACK
 
 
 class TestBuildImagesEndpoint:

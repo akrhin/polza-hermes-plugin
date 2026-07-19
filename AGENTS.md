@@ -214,10 +214,30 @@ platform_toolsets:
 ```
 plugins/image_gen/polza/
 ├── __init__.py        # PolzaImageProvider(ImageGenProvider) — прямой вызов /v2/images/generations
-└── plugin.yaml        # Манифест (kind: backend, requires_env: POLZA_API_KEY)
+├── _utils.py          # Pure helpers (no Hermes deps) — _build_images_endpoint, _dedupe_models
+├── plugin.yaml        # Манифест (kind: backend, requires_env: POLZA_API_KEY)
+├── AGENTS.md          # Шпаргалка для AI-ассистентов
+└── ARCHITECTURE.md    # Архитектура плагина
 ```
 
 ---
+
+## Сборка и тестирование
+
+```bash
+make install-dev   # установка в editable mode + test deps
+make lint          # ruff check
+make format        # ruff format
+make sast          # bandit security scan
+make test          # unit-тесты
+make live-test     # live-тесты (требуют POLZA_API_KEY)
+make ci            # полный CI-пайплайн (lint + sast + compile + test)
+```
+
+## Планирование
+
+- `PLAN.md` — план исправлений по findings аудита
+- `TASKS.md` — разбивка плана на исполнимые задачи для @coder
 
 ## Обновление
 

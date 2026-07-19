@@ -1,69 +1,23 @@
 """Unit tests for polza-balance — argument parsing, formatting helpers.
 
 The plugin lives in a directory with a hyphen (polza-balance), so standard
-import won't work. We test utility functions by duplicating their logic
-inline — they are pure stateless functions with zero dependencies.
+import won't work.  We load it via importlib and import the pure utility
+functions from production code.
 """
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from tests.helpers import polza_balance
 
-# ── Inline copies of utility functions ────────────────────────────────────
+# ── Import pure functions from production code ─────────────────────────
 
-MSK = timezone(timedelta(hours=3))
-PROVIDER_COLORS = {
-    "DeepSeek": "#2e86de",
-    "GMICloud": "#e74c3c",
-    "Nebius":   "#2ecc71",
-    "Parasail": "#f39c12",
-    "Morph":    "#9b59b6",
-    "Venice":   "#1abc9c",
-    "Nvidia":   "#e91e63",
-    "Mancer":   "#34495e",
-}
+_fmt_num = polza_balance._fmt_num
+_to_msk = polza_balance._to_msk
+_split_provider = polza_balance._split_provider
+_provider_color = polza_balance._provider_color
+PROVIDER_COLORS = polza_balance.PROVIDER_COLORS
 
-
-def _fmt_num(n: int) -> str:
-    if n >= 1_000_000:
-        return f"{n/1_000_000:.1f}M"
-    if n >= 1_000:
-        return f"{n/1_000:.1f}K"
-    return str(n)
-
-
-def _to_msk(created_at: str | None) -> str:
-    if not created_at:
-        return "??:??"
-    try:
-        dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-        return dt.astimezone(MSK).strftime("%H:%M")
-    except (ValueError, TypeError):
-        return "??:??"
-
-
-def _split_provider(model_name: str) -> tuple:
-    if ":" in model_name:
-        parts = model_name.split(":", 1)
-        return (parts[0].strip(), parts[1].strip())
-    return ("", model_name)
-
-
-def _provider_color(provider_name: str | None) -> str:
-    if not provider_name:
-        return "#888"
-    if provider_name in PROVIDER_COLORS:
-        return PROVIDER_COLORS[provider_name]
-    h, mod = 0, 1000003
-    for ch in provider_name:
-        h = (h * 131 + ord(ch)) % mod
-    hue = (((h * 1234567) % mod + mod) % mod / mod) * 360
-    sat = 55 + (h % 30)
-    lit = 35 + ((h >> 4) % 25)
-    return f"hsl({round(hue)}, {sat}%, {lit}%)"
-
-
-# ── Tests ──────────────────────────────────────────────────────────────────
+# ── Tests ──────────────────────────────────────────────────────────────
 
 
 class TestFmtNum:

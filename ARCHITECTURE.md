@@ -19,9 +19,13 @@ plugins/polza-balance/
 
 plugins/image_gen/polza/
 ├── __init__.py       # PolzaImageProvider — ImageGenProvider subclass
-└── plugin.yaml       # Manifest
+├── _utils.py         # Pure helpers: _build_images_endpoint, _dedupe_models
+├── plugin.yaml       # Manifest (kind: backend, requires_env)
+├── AGENTS.md         # AI-assistant cheat sheet
+└── ARCHITECTURE.md   # Architecture docs
 
 tests/
+├── helpers.py              # importlib-based plugin module loaders
 ├── test_polza_profile.py   # Unit tests (no API key needed)
 ├── test_polza_live.py      # Smoke tests (requires POLZA_API_KEY)
 ├── test_polza_balance.py   # Balance formatting tests
